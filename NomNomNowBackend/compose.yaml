@@ -1,1 +1,9 @@
 services:
+  backend:
+    image: ghcr.io/nom-nom-now/nom-nom-now-backend:latest
+    container_name: nomnomnow-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8080:8080"
