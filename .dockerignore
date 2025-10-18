@@ -1,0 +1,27 @@
+# === Git & Editor ===
+.git
+.gitignore
+.idea
+.vscode
+.DS_Store
+
+# === Build-Outputs ===
+target
+out
+build
+*.log
+
+# === Node stuff (falls im Projektordner vorhanden) ===
+node_modules
+npm-debug.log
+yarn-error.log
+
+# === System/Temp ===
+*.tmp
+*.swp
+Thumbs.db
+
+# === Docker selbst ===
+Dockerfile
+docker-compose.yml
+docker-compose*.yaml
