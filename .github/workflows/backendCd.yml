@@ -18,11 +18,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Buildx
+        uses: docker/setup-buildx-action@v3
+        with:
+          driver: docker-container
+          install: true
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
           cache: maven
+
+      - name: Build (Maven)
+        run: mvn -B -DskipTests package
 
       - name: Build (Maven)
         run: mvn -B -DskipTests package
