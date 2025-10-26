@@ -77,6 +77,49 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Locate compose file
+        id: compose
+        shell: bash
+        run: |
+          set -euo pipefail
+          CANDIDATES=(
+            "docker-compose.yml"
+            "docker-compose.yaml"
+            "compose.yml"
+            "compose.yaml"
+            "deploy/docker-compose.yml"
+            "deploy/compose.yml"
+            "infra/docker-compose.yml"
+            "infra/compose.yml"
+          )
+          FILE=""
+          for f in "${CANDIDATES[@]}"; do
+            if [[ -f "$f" ]]; then FILE="$f"; break; fi
+          done
+          if [[ -z "$FILE" ]]; then
+            echo "Keine Compose-Datei gefunden. Lege sie ins Repo oder passe den Pfad an." >&2
+            echo "Workspace-Inhalt:"
+            ls -la
+            exit 1
+          fi
+          echo "file=$FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Show located compose path
+        run: |
+          echo "Using compose file: ${{ steps.compose.outputs.file }}"
+          ls -la "$(dirname "${{ steps.compose.outputs.file }}")"
+
+      - name: Ensure target dir exists
+        uses: appleboy/ssh-action@v1.2.1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            set -e
+            mkdir -p "${{ secrets.APP_DIR }}"
+
       - name: Copy compose to server
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -84,10 +127,36 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: "docker-compose.yml"
-          target: ${{ secrets.APP_DIR }}
+          source: "${{ steps.compose.outputs.file }}"
+          target: "${{ secrets.APP_DIR }}/"
           overwrite: true
-          strip_components: 0
+          debug: true
+
+      - name: Copy .env if present
+        if: ${{ hashFiles('.env') != '' }}
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: ".env"
+          target: "${{ secrets.APP_DIR }}/"
+          overwrite: true
+          debug: true
+
+      - name: Copy docker-compose.prod.yml if present
+        if: ${{ hashFiles('docker-compose.prod.yml') != '' }}
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "docker-compose.prod.yml"
+          target: "${{ secrets.APP_DIR }}/"
+          overwrite: true
+          debug: true
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.1
@@ -104,13 +173,20 @@ jobs:
             set -euo pipefail
             cd "${{ secrets.APP_DIR }}"
 
-            # Login an GHCR mit dem kurzlebigen Workflow-Token (nur für diesen Pull)
+            # GHCR-Login (wird ignoriert, falls privat + Token nicht reicht)
             echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin || true
 
             if [ -f docker-compose.prod.yml ]; then
               export COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
             else
-              export COMPOSE_FILE=docker-compose.yml
+              # falls der Dateiname nicht docker-compose.yml heißt, COMPOSE_FILE setzen:
+              if [ -f compose.yml ]; then
+                export COMPOSE_FILE=compose.yml
+              elif [ -f compose.yaml ]; then
+                export COMPOSE_FILE=compose.yaml
+              else
+                export COMPOSE_FILE=docker-compose.yml
+              fi
             fi
 
             docker compose pull
