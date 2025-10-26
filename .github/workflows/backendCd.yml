@@ -1,11 +1,12 @@
 name: backendCd.yml
+
 on:
   push:
     branches:
       - "main"
+
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
   build-and-push:
@@ -17,6 +18,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Lowercase repo
+        id: repo
+        run: echo "repo=${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
 
       - name: Set up Buildx
         id: bx
@@ -46,7 +51,7 @@ jobs:
 
       - name: Get short SHA
         id: meta
-        run: echo "sha_tag=${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+        run: echo "sha_tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
 
       - name: Build & Push image
         uses: docker/build-push-action@v6
@@ -55,10 +60,10 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ toLower(github.repository) }}:latest
-            ghcr.io/${{ toLower(github.repository) }}:${{ steps.meta.outputs.sha_tag }}
-          cache-from: type=registry,ref=ghcr.io/${{ toLower(github.repository) }}:buildcache
-          cache-to: type=registry,ref=ghcr.io/${{ toLower(github.repository) }}:buildcache,mode=max
+            ghcr.io/${{ steps.repo.outputs.repo }}:latest
+            ghcr.io/${{ steps.repo.outputs.repo }}:${{ steps.meta.outputs.sha_tag }}
+          cache-from: type=registry,ref=ghcr.io/${{ steps.repo.outputs.repo }}:buildcache
+          cache-to: type=registry,ref=ghcr.io/${{ steps.repo.outputs.repo }}:buildcache,mode=max
 
   deploy:
     runs-on: ubuntu-latest
@@ -67,7 +72,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
 
       - name: Copy compose to server
         uses: appleboy/scp-action@v0.1.7
@@ -80,7 +84,6 @@ jobs:
           target: ${{ secrets.APP_DIR }}
           overwrite: true
           strip_components: 0
-
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
