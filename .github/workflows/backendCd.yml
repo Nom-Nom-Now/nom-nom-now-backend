@@ -173,7 +173,7 @@ jobs:
             set -euo pipefail
             cd "${{ secrets.APP_DIR }}"
 
-            # GHCR-Login (wird ignoriert, falls privat + Token nicht reicht)
+            # Login an GHCR mit dem kurzlebigen Workflow-Token (nur für diesen Pull)
             echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin || true
 
             if [ -f docker-compose.prod.yml ]; then
