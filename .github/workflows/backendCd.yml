@@ -2,7 +2,8 @@ name: backendCd.yml
 
 on:
   push:
-    branches: ["main"]
+    branches:
+      - "main"
 
 env:
   REGISTRY: ghcr.io
@@ -86,6 +87,7 @@ jobs:
           source: "docker-compose.yml"
           target: ${{ secrets.APP_DIR }}
           overwrite: true
+          strip_components: 0
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.1
