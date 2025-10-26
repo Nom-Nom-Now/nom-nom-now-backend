@@ -1,9 +1,64 @@
 services:
+  postgres:
+    image: postgres:16
+    container_name: nomnomnow-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: nnn
+      POSTGRES_USER: nnn_owner
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [internal]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  flyway:
+    image: flyway/flyway:10
+    profiles: ["migrate"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      -url=jdbc:postgresql://postgres:5432/nnn
+      -user=nnn_owner
+      -password=${POSTGRES_PASSWORD}
+      -schemas=app
+      -locations=filesystem:/flyway/sql
+      -baselineOnMigrate=true
+      -cleanDisabled=true
+      -placeholders.appUserPassword=${APP_DB_PASSWORD}
+      migrate
+    volumes:
+      - ./flyway/sql:/flyway/sql:ro
+    networks: [internal]
+
   backend:
     image: ghcr.io/nom-nom-now/nom-nom-now-backend:latest
     container_name: nomnomnow-backend
     restart: unless-stopped
     env_file:
       - .env
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/nnn
+      SPRING_DATASOURCE_USERNAME: ${APP_DB_USERNAME}
+      SPRING_DATASOURCE_PASSWORD: ${APP_DB_PASSWORD}
+      SPRING_FLYWAY_ENABLED: "false"
+      SPRING_JPA_HIBERNATE_DDL_AUTO: validate
+    depends_on:
+      postgres:
+        condition: service_healthy
     ports:
       - "8080:8080"
+    networks: [internal]
+
+volumes:
+  pgdata:
+
+networks:
+  internal:
+    driver: bridge
