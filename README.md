@@ -25,13 +25,16 @@
 2. Add the following variables (update the passwords to something secure for your machine):
 
    ```bash
-   POSTGRES_PASSWORD=changeme
-   APP_DB_USERNAME=nnn_app
-   APP_DB_PASSWORD=changeme
-   SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/nnn
-   SPRING_DATASOURCE_USERNAME=${APP_DB_USERNAME}
-   SPRING_DATASOURCE_PASSWORD=${APP_DB_PASSWORD}
-   SPRING_DOCKER_COMPOSE_ENABLED=false
+    SERVER_PORT=8080
+    POSTGRES_PASSWORD=changeme
+    APP_DB_USERNAME=nnn_app
+    APP_DB_PASSWORD=changeme
+
+    SPRING_PROFILES_ACTIVE=local
+    SPRING_DOCKER_COMPOSE_ENABLED=false
+    SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/nnn
+    SPRING_DATASOURCE_USERNAME=nnn_app
+    SPRING_DATASOURCE_PASSWORD=changeme
    ```
 
 ### Start infrastructure
