@@ -1,7 +1,67 @@
 # nom-nom-now-backend
+## Table of contents
+- [Local startup guide](#local-startup-guide)
+  - [Prerequisites](#prerequisites)
+  - [Configure environment](#configure-environment)
+  - [Start infrastructure](#start-infrastructure)
+  - [Run the backend](#run-the-backend)
+  - [Shut down](#shut-down)
+- [Flyway migrations](#flyway-migrations)
+- [Conventions](#conventions)
+  - [Branch Naming](#branch-naming)
+  - [Commit Messages](#commit-messages)
+  - [Repository Structure](#repository-structure)
+
 ## Local startup guide
 
-## Current state
+### Prerequisites
+- JDK 21 (or a compatible distribution such as Temurin or Azul)
+- Docker Desktop or Docker Engine with Compose V2
+- Optional: `psql` for inspecting the database manually
+
+### Configure environment
+
+1. Create a `.env` file in the repository root; it is shared by Docker Compose and the Spring Boot app.
+2. Add the following variables (update the passwords to something secure for your machine):
+
+   ```bash
+    SERVER_PORT=8080
+    POSTGRES_PASSWORD=changeme
+    APP_DB_USERNAME=nnn_app
+    APP_DB_PASSWORD=changeme
+
+    SPRING_PROFILES_ACTIVE=local
+    SPRING_DOCKER_COMPOSE_ENABLED=false
+    SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/nnn
+    SPRING_DATASOURCE_USERNAME=nnn_app
+    SPRING_DATASOURCE_PASSWORD=changeme
+   ```
+
+### Start infrastructure
+1. Start PostgreSQL: `docker compose up -d postgres`
+2. Apply migrations (runs once per schema change): `docker compose --profile migrate run --rm flyway`
+
+The database persists in the `pgdata` Docker volume, so recreating containers does not remove data.
+
+### Run the backend
+1. Launch the application:
+    ```bash 
+    export $(xargs < .env)
+    ./mvnw spring-boot:run 
+    ```
+2. The API becomes available at http://localhost:8080 after the Spring banner appears.
+
+### Shut down
+- Stop the app with `Ctrl+C`.
+- Tear down containers when finished: `docker compose down`.
+
+## Flyway migrations
+- Store versioned scripts in `flyway/sql` and name each file `V<version>__<short_description>.sql`, for example `V2__add_meals_table.sql`. Use sequential integers for `<version>` and lowercase snake case for the description so the sort order is predictable.
+- Never change, delete, or renumber a migration once it has been run in any shared environment. Create a new migration to make follow-up changes.
+- Keep schema and repeatable seed changes in migrations; avoid shipping ad-hoc data fixes that only apply once.
+- You can interpolate `${appUserPassword}` in scripts to reuse the value from `.env`, as shown in `V1__bootstrap.sql`.
+- After adding a migration, execute `docker compose --profile migrate run --rm flyway` to apply it locally before running the app.
+
 
 ## Conventions
 
@@ -50,4 +110,3 @@ src/        # Application code
 docs/       # Documentation
 config/     # Configuration files
 scripts/    # Helper or deployment scripts
-
