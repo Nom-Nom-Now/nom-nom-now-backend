@@ -3,6 +3,8 @@ package com.nomnomnow.nnnbackend.repository;
 import com.nomnomnow.nnnbackend.entity.Ingredient;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
+import java.util.Optional;
 
+public interface IngredientRepository extends JpaRepository<Ingredient, Long> {
+    Optional<Ingredient> findByNameIgnoreCase(String name);
 }

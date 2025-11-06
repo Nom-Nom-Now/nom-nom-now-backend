@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 
-import java.util.Objects;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -19,23 +19,21 @@ public class Recipe {
     private Long id;
 
     private String name;
-    private String instructions;
-    private int cookingTime;
 
-    @ElementCollection
-    @CollectionTable(name = "recipe_categories", schema = "app", joinColumns = @JoinColumn(name = "recipe_id"))
-    private Set<String> categories;
+    private String instructions;
+
+    @Column(name = "cooking_time")
+    private Integer cookingTime;
+
+    @ManyToMany
+    @JoinTable(
+            name = "recipe_category",
+            schema = "app",
+            joinColumns = @JoinColumn(name = "recipe_id"),
+            inverseJoinColumns = @JoinColumn(name = "category_id")
+    )
+    private Set<Category> categories = new HashSet<>();
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
-    private Set<RecipeComponent> components;
-
-    @Override
-    public boolean equals(Object o) {
-
-        if (this == o)
-            return true;
-        if (!(o instanceof Recipe recipe))
-            return false;
-        return Objects.equals(name, recipe.name); //Der Name eines Rezeptes sollte eindeutig sein.
-    }
+    private Set<RecipeComponent> components = new HashSet<>();
 }
