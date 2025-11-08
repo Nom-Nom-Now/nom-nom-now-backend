@@ -34,7 +34,7 @@ public class RecipeService {
     @Transactional
     public Recipe create(RecipeRequest request) {
         var recipe = new Recipe();
-        recipe.setName(request.name());
+        recipe.setName(request.name().trim());
         recipe.setInstructions(request.instructions());
         recipe.setCookingTime(request.cookingTime());
 

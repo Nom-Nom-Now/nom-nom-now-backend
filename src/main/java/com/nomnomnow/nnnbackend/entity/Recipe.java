@@ -3,6 +3,7 @@ package com.nomnomnow.nnnbackend.entity;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 
 import java.util.HashSet;
@@ -12,6 +13,7 @@ import java.util.Set;
 @Data
 @Table(name = "recipe", schema = "app")
 @RequiredArgsConstructor
+@EqualsAndHashCode(exclude = "components")
 public class Recipe {
 
     @Id

@@ -10,6 +10,7 @@ import java.math.BigDecimal;
 @Table(name = "recipe_component", schema = "app")
 @RequiredArgsConstructor
 @Data
+@EqualsAndHashCode(exclude = "recipe")
 public class RecipeComponent {
 
     @Id
