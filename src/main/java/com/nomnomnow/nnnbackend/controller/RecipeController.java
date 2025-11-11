@@ -17,7 +17,7 @@ import java.util.List;
 
 @Slf4j
 @RestController
-@RequestMapping("/recipe")
+@RequestMapping("/recipes")
 @RequiredArgsConstructor
 public class RecipeController {
 

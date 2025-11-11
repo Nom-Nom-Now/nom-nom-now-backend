@@ -7,7 +7,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 @RequiredArgsConstructor
-@RequestMapping("/category")
+@RequestMapping("/categories")
 @RestController
 public class CategoryController {
 
