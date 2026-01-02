@@ -15,7 +15,7 @@
 ## Local startup guide
 
 ### Prerequisites
-- JDK 21 (or a compatible distribution such as Temurin or Azul)
+- JDK 25 (or a compatible distribution such as Temurin or Azul)
 - Docker Desktop or Docker Engine with Compose V2
 - Optional: `psql` for inspecting the database manually
 
