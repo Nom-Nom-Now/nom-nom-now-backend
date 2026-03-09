@@ -5,30 +5,30 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.7</version>
-        <relativePath/> <!-- lookup parent from repository -->
+        <version>4.0.3</version>
+        <relativePath/>
     </parent>
     <groupId>com.nomnomnow</groupId>
     <artifactId>nnnbackend</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>NomNomNowBackend</name>
     <description>NomNomNowBackend</description>
-    <url/>
-    <licenses>
-        <license/>
-    </licenses>
-    <developers>
-        <developer/>
-    </developers>
-    <scm>
-        <connection/>
-        <developerConnection/>
-        <tag/>
-        <url/>
-    </scm>
     <properties>
-        <java.version>21</java.version>
+        <java.version>25</java.version>
+        <testcontainers.version>1.20.4</testcontainers.version>
     </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>${testcontainers.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
     <dependencies>
         <dependency>
             <groupId>org.springframework.boot</groupId>
