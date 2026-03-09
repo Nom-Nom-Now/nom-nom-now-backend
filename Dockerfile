@@ -1,10 +1,16 @@
+# syntax=docker/dockerfile:1.7
+
 # === Build stage ===
-FROM maven:3.9.9-eclipse-temurin-25 AS build
+FROM eclipse-temurin:25-jdk AS build
 WORKDIR /app
-COPY pom.xml .
-RUN mvn -q -e -U -B -DskipTests dependency:go-offline
+
+COPY .mvn/ .mvn/
+COPY mvnw pom.xml ./
+RUN chmod +x mvnw
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -q -B -DskipTests dependency:go-offline
+
 COPY src ./src
-RUN mvn -q -e -B -DskipTests package
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -q -B -DskipTests package
 
 # === Run stage ===
 FROM eclipse-temurin:25-jre
