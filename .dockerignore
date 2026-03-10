@@ -1,6 +1,7 @@
 # === Git & Editor ===
 .git
 .gitignore
+.github
 .idea
 .vscode
 .DS_Store
@@ -10,6 +11,16 @@ target
 out
 build
 *.log
+
+# === Local config / docs ===
+.env
+README.md
+compose.yml
+compose.yaml
+docker-compose.yml
+docker-compose.yaml
+docker-compose.prod.yml
+flyway
 
 # === Node stuff (falls im Projektordner vorhanden) ===
 node_modules
@@ -23,5 +34,3 @@ Thumbs.db
 
 # === Docker selbst ===
 Dockerfile
-docker-compose.yml
-docker-compose*.yaml

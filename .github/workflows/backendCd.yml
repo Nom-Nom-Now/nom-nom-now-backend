@@ -5,6 +5,10 @@ on:
     branches:
       - "main"
 
+concurrency:
+  group: backend-cd-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: ghcr.io
 
@@ -17,6 +21,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
 
       - name: Set up Buildx
         id: bx
@@ -24,19 +30,6 @@ jobs:
         with:
           driver: docker-container
           install: true
-
-      - name: Show buildx builders
-        run: docker buildx ls
-
-      - name: Set up Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: "25"
-          cache: maven
-
-      - name: Build (Maven)
-        run: mvn -B -DskipTests package
 
       - name: Login to GHCR
         uses: docker/login-action@v3
@@ -62,6 +55,7 @@ jobs:
         with:
           builder: ${{ steps.bx.outputs.name }}
           context: .
+          pull: true
           push: true
           tags: |
             ${{ steps.repo.outputs.image }}:latest
@@ -76,6 +70,18 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          sparse-checkout: |
+            .env
+            compose.yml
+            compose.yaml
+            docker-compose.yml
+            docker-compose.yaml
+            docker-compose.prod.yml
+            deploy
+            infra
+            flyway/sql
 
       - name: Locate compose file
         id: compose
@@ -109,7 +115,7 @@ jobs:
           echo "Using compose file: ${{ steps.compose.outputs.file }}"
           ls -la "$(dirname "${{ steps.compose.outputs.file }}")"
 
-      - name: Ensure target dir exists
+      - name: Ensure target dirs exist
         uses: appleboy/ssh-action@v1.2.1
         with:
           host: ${{ secrets.SSH_HOST }}
@@ -119,6 +125,7 @@ jobs:
           script: |
             set -e
             mkdir -p "${{ secrets.APP_DIR }}"
+            mkdir -p "${{ secrets.APP_DIR }}/flyway/sql"
 
       - name: Copy compose to server
         uses: appleboy/scp-action@v0.1.7
@@ -130,7 +137,6 @@ jobs:
           source: "${{ steps.compose.outputs.file }}"
           target: "${{ secrets.APP_DIR }}/"
           overwrite: true
-          debug: true
 
       - name: Copy .env if present
         if: ${{ hashFiles('.env') != '' }}
@@ -143,7 +149,6 @@ jobs:
           source: ".env"
           target: "${{ secrets.APP_DIR }}/"
           overwrite: true
-          debug: true
 
       - name: Copy docker-compose.prod.yml if present
         if: ${{ hashFiles('docker-compose.prod.yml') != '' }}
@@ -156,18 +161,6 @@ jobs:
           source: "docker-compose.prod.yml"
           target: "${{ secrets.APP_DIR }}/"
           overwrite: true
-          debug: true
-
-      - name: Ensure flyway dir exists
-        uses: appleboy/ssh-action@v1.2.1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            set -e
-            mkdir -p "${{ secrets.APP_DIR }}/flyway/sql"
 
       - name: Copy Flyway SQLs to server
         uses: appleboy/scp-action@v0.1.7
@@ -180,8 +173,6 @@ jobs:
           target: "${{ secrets.APP_DIR }}/flyway/sql"
           strip_components: 2
           overwrite: true
-          debug: true
-
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.1
@@ -197,10 +188,10 @@ jobs:
           script: |
             set -euo pipefail
             cd "${{ secrets.APP_DIR }}"
-            
+
             # Login an GHCR mit dem Workflow-Token
             echo "$GITHUB_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin || true
-            
+
             # COMPOSE_FILE korrekt setzen (deine bestehende Logik bleibt)
             if [ -f docker-compose.prod.yml ]; then
               export COMPOSE_FILE=docker-compose.yml:docker-compose.prod.yml
@@ -213,18 +204,18 @@ jobs:
                 export COMPOSE_FILE=docker-compose.yml
               fi
             fi
-            
+
             # Images ziehen (backend + postgres + flyway)
             docker compose pull
-            
+
             # DB hochfahren (falls nicht läuft)
             docker compose up -d postgres
-            
+
             # Migration ausführen (nutzt ./flyway/sql und .env-Variablen)
             docker compose --profile migrate run --rm flyway
-            
+
             # App starten/aktualisieren
             docker compose up -d backend --remove-orphans
-            
+
             # Aufräumen
             docker image prune -f
