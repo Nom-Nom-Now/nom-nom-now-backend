@@ -9,8 +9,6 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
     networks: [internal]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
@@ -54,9 +52,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    ports:
-      - "8080:8080"
-    networks: [internal]
+    networks:
+      - internal
+      - web
 
 volumes:
   pgdata:
@@ -64,3 +62,5 @@ volumes:
 networks:
   internal:
     driver: bridge
+  web:
+    external: true
