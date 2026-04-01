@@ -138,17 +138,33 @@ jobs:
           target: "${{ secrets.APP_DIR }}/"
           overwrite: true
 
-      - name: Copy .env if present
-        if: ${{ hashFiles('.env') != '' }}
-        uses: appleboy/scp-action@v0.1.7
+      - name: Generate .env on server
+        uses: appleboy/ssh-action@v1.2.1
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          APP_DB_USERNAME: ${{ secrets.APP_DB_USERNAME }}
+          APP_DB_PASSWORD: ${{ secrets.APP_DB_PASSWORD }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           port: ${{ secrets.SSH_PORT }}
-          source: ".env"
-          target: "${{ secrets.APP_DIR }}/"
-          overwrite: true
+          envs: POSTGRES_PASSWORD,APP_DB_USERNAME,APP_DB_PASSWORD,GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,FRONTEND_URL
+          script: |
+            set -euo pipefail
+            ENV_FILE="${{ secrets.APP_DIR }}/.env"
+            printf '%s\n' \
+              "POSTGRES_PASSWORD=${POSTGRES_PASSWORD}" \
+              "APP_DB_USERNAME=${APP_DB_USERNAME}" \
+              "APP_DB_PASSWORD=${APP_DB_PASSWORD}" \
+              "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}" \
+              "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}" \
+              "FRONTEND_URL=${FRONTEND_URL}" \
+              > "$ENV_FILE"
+            chmod 600 "$ENV_FILE"
 
       - name: Copy docker-compose.prod.yml if present
         if: ${{ hashFiles('docker-compose.prod.yml') != '' }}

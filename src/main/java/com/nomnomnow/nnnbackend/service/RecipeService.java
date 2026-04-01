@@ -10,6 +10,7 @@ import com.nomnomnow.nnnbackend.exception.ResourceNotFoundException;
 import com.nomnomnow.nnnbackend.repository.CategoryRepository;
 import com.nomnomnow.nnnbackend.repository.IngredientRepository;
 import com.nomnomnow.nnnbackend.repository.RecipeRepository;
+import com.nomnomnow.nnnbackend.user.CurrentUserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ public class RecipeService {
     private final CategoryRepository categoryRepository;
     private final IngredientRepository ingredientRepository;
     private final RecipeRepository recipeRepository;
+    private final CurrentUserService currentUserService;
 
     @Transactional
     public Recipe create(RecipeRequest request) {
@@ -37,6 +39,7 @@ public class RecipeService {
         recipe.setName(request.name().trim());
         recipe.setInstructions(request.instructions());
         recipe.setCookingTime(request.cookingTime());
+        recipe.setOwner(currentUserService.getCurrentUser());
 
         attachCategories(recipe, request.categoryIds());
         attachComponents(recipe, request.components());
