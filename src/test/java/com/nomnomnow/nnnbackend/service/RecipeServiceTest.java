@@ -10,6 +10,9 @@ import com.nomnomnow.nnnbackend.exception.ResourceNotFoundException;
 import com.nomnomnow.nnnbackend.repository.CategoryRepository;
 import com.nomnomnow.nnnbackend.repository.IngredientRepository;
 import com.nomnomnow.nnnbackend.repository.RecipeRepository;
+import com.nomnomnow.nnnbackend.user.AppUser;
+import com.nomnomnow.nnnbackend.user.CurrentUserService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -40,8 +43,21 @@ class RecipeServiceTest {
     @Mock
     private RecipeRepository recipeRepository;
 
+    @Mock
+    private CurrentUserService currentUserService;
+
     @InjectMocks
     private RecipeService recipeService;
+
+    @BeforeEach
+    void setUp() {
+        var owner = new AppUser();
+        owner.setId(1L);
+        owner.setGoogleId("google-123");
+        owner.setEmail("test@example.com");
+        owner.setName("Test User");
+        when(currentUserService.getCurrentUser()).thenReturn(owner);
+    }
 
     @Test
     void create_withExistingCategoriesAndMixedIngredients_buildsRecipeAndCachesNewIngredient() {
@@ -144,3 +160,4 @@ class RecipeServiceTest {
         verify(ingredientRepository, never()).save(any(Ingredient.class));
     }
 }
+

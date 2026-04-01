@@ -21,6 +21,8 @@ class NomNomNowBackendApplicationTests {
         registry.add("spring.datasource.username", postgreSQLContainer::getUsername);
         registry.add("spring.datasource.password", postgreSQLContainer::getPassword);
         registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
+        registry.add("spring.security.oauth2.client.registration.google.client-id", () -> "test-client-id");
+        registry.add("spring.security.oauth2.client.registration.google.client-secret", () -> "test-client-secret");
     }
 
 

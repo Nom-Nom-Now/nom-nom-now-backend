@@ -7,6 +7,7 @@ public record RecipeResponse(
         String name,
         String instructions,
         Integer cookingTime,
+        String ownerName,
         List<CategoryResponse> categories,
         List<RecipeComponentResponse> components
 ) {

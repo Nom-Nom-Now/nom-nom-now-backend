@@ -1,6 +1,7 @@
 package com.nomnomnow.nnnbackend.entity;
 
 
+import com.nomnomnow.nnnbackend.user.AppUser;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -13,7 +14,7 @@ import java.util.Set;
 @Data
 @Table(name = "recipe", schema = "app")
 @RequiredArgsConstructor
-@EqualsAndHashCode(exclude = "components")
+@EqualsAndHashCode(exclude = {"components", "owner"})
 public class Recipe {
 
     @Id
@@ -26,6 +27,10 @@ public class Recipe {
 
     @Column(name = "cooking_time")
     private Integer cookingTime;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "owner_id")
+    private AppUser owner;
 
     @ManyToMany
     @JoinTable(

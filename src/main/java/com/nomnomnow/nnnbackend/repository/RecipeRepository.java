@@ -9,6 +9,6 @@ import java.util.List;
 public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
     @Override
-    @EntityGraph(attributePaths = {"categories", "components", "components.ingredient"})
+    @EntityGraph(attributePaths = {"categories", "components", "components.ingredient", "owner"})
     List<Recipe> findAll();
 }

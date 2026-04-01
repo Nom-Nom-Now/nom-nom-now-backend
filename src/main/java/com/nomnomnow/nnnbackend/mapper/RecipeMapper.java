@@ -26,11 +26,14 @@ public class RecipeMapper {
             .map(this::toComponentResponse)
             .toList();
 
+        var ownerName = recipe.getOwner() != null ? recipe.getOwner().getName() : null;
+
         return new RecipeResponse(
             recipe.getId(),
             recipe.getName(),
             recipe.getInstructions(),
             recipe.getCookingTime(),
+            ownerName,
             categories,
             components
         );

@@ -1,112 +1,144 @@
-# nom-nom-now-backend
-## Table of contents
-- [Local startup guide](#local-startup-guide)
-  - [Prerequisites](#prerequisites)
-  - [Configure environment](#configure-environment)
-  - [Start infrastructure](#start-infrastructure)
-  - [Run the backend](#run-the-backend)
-  - [Shut down](#shut-down)
-- [Flyway migrations](#flyway-migrations)
-- [Conventions](#conventions)
-  - [Branch Naming](#branch-naming)
-  - [Commit Messages](#commit-messages)
-  - [Repository Structure](#repository-structure)
+# 🍜 nom-nom-now-backend
 
-## Local startup guide
+Spring Boot REST API für Nom Nom Now – Rezepte erstellen, teilen und entdecken.
 
-### Prerequisites
-- JDK 25 (or a compatible distribution such as Temurin or Azul)
-- Docker Desktop or Docker Engine with Compose V2
-- Optional: `psql` for inspecting the database manually
+> **Tech-Stack:** Java 25 · Spring Boot 4 · PostgreSQL · Flyway · Docker Compose · OAuth2 (Google)
 
-### Configure environment
+---
 
-1. Create a `.env` file in the repository root; it is shared by Docker Compose and the Spring Boot app.
-2. Add the following variables (update the passwords to something secure for your machine):
+## Schnellstart
 
-   ```bash
-    SERVER_PORT=8080
-    POSTGRES_PASSWORD=changeme
-    APP_DB_USERNAME=nnn_app
-    APP_DB_PASSWORD=changeme
+### Voraussetzungen
 
-    SPRING_PROFILES_ACTIVE=local
-    SPRING_DOCKER_COMPOSE_ENABLED=false
-    SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/nnn
-    SPRING_DATASOURCE_USERNAME=nnn_app
-    SPRING_DATASOURCE_PASSWORD=changeme
-   ```
+| Tool | Version |
+|------|---------|
+| JDK | 25+ (Temurin, Azul o.ä.) |
+| Docker | mit Compose V2 |
 
-### Start infrastructure
-1. Start PostgreSQL: `docker compose up -d postgres`
-2. Apply migrations (runs once per schema change): `docker compose --profile migrate run --rm flyway`
+### 1 — `.env` anlegen
 
-The database persists in the `pgdata` Docker volume, so recreating containers does not remove data.
+```bash
+# Datenbank
+POSTGRES_PASSWORD=changeme
+APP_DB_USERNAME=nnn_app
+APP_DB_PASSWORD=changeme
 
-### Run the backend
-1. Launch the application:
-    ```bash 
-    export $(xargs < .env)
-    ./mvnw spring-boot:run 
-    ```
-2. The API becomes available at http://localhost:8080 after the Spring banner appears.
+# Spring Boot
+SERVER_PORT=8080
+SPRING_PROFILES_ACTIVE=local
+SPRING_DOCKER_COMPOSE_ENABLED=false
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/nnn
+SPRING_DATASOURCE_USERNAME=nnn_app
+SPRING_DATASOURCE_PASSWORD=changeme
 
-### Shut down
-- Stop the app with `Ctrl+C`.
-- Tear down containers when finished: `docker compose down`.
+# Google OAuth2
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+FRONTEND_URL=http://localhost:5173
+```
 
-## Flyway migrations
-- Store versioned scripts in `flyway/sql` and name each file `V<version>__<short_description>.sql`, for example `V2__add_meals_table.sql`. Use sequential integers for `<version>` and lowercase snake case for the description so the sort order is predictable.
-- Never change, delete, or renumber a migration once it has been run in any shared environment. Create a new migration to make follow-up changes.
-- Keep schema and repeatable seed changes in migrations; avoid shipping ad-hoc data fixes that only apply once.
-- You can interpolate `${appUserPassword}` in scripts to reuse the value from `.env`, as shown in `V1__bootstrap.sql`.
-- After adding a migration, execute `docker compose --profile migrate run --rm flyway` to apply it locally before running the app.
+### 2 — Infrastruktur starten
 
+```bash
+docker compose up -d postgres
+docker compose --profile migrate run --rm flyway
+```
 
-## Conventions
+### 3 — Backend starten
 
-To keep the repository clean and consistent, we follow clear conventions for branches, commits, and structure.
+```bash
+export $(xargs < .env)
+./mvnw spring-boot:run
+```
 
-### Branch Naming
-Each branch name starts with a type prefix, followed by the Jira issue ID and a short, descriptive name in kebab-case.
+API erreichbar unter `http://localhost:8080`.
 
-**Format:**
-`<type>/<issue-id>-<short-description>`
+### 4 — Herunterfahren
 
-**Examples:**
-`feat/NNN-42-add-login-page`  
-`fix/NNN-17-resolve-null-pointer`  
-`docs/NNN-36-update-readme`
+```bash
+# App: Ctrl+C
+docker compose down          # Container stoppen
+# docker compose down -v     # + Datenbank-Volume löschen
+```
 
-| Prefix | Purpose |
-|--------|----------|
-| feat/ | New feature |
-| fix/ | Bug fix |
-| docs/ | Documentation |
-| chore/ | Maintenance or cleanup |
-| refactor/ | Code restructure |
-| test/ | Tests |
-| ci/ | CI/CD changes |
+---
 
-### Commit Messages
-Commit messages describe what and why a change was made, in a consistent format.
+## Authentifizierung
 
-**Format:**
-`<type>(<scope>): <short summary>`
+Google OAuth2 Login – Details siehe [`docs/google-login.md`](docs/google-login.md).
 
-**Example:**
-`feat(auth): add token refresh endpoint`
+| Methode | Pfad | Zugriff |
+|---------|------|---------|
+| `GET` | `/recipes/**`, `/categories/**` | 🌍 Öffentlich |
+| `POST` | `/recipes`, `/categories` | 🔒 Authentifiziert |
+| `GET` | `/auth/me` | 🔒 Authentifiziert |
 
-Rules:
-- Use imperative tone (“add”, “fix”, “update”)  
-- Keep under 80 characters  
-- Reference Jira issue ID when applicable  
+---
 
-### Repository Structure
-A clear layout helps everyone find things quickly.
+## Flyway-Migrationen
 
-```text
-src/        # Application code
-docs/       # Documentation
-config/     # Configuration files
-scripts/    # Helper or deployment scripts
+Skripte liegen in `flyway/sql/` und folgen dem Schema:
+
+```
+V<nummer>__<beschreibung>.sql     z.B.  V5__add_ratings.sql
+```
+
+**Regeln:**
+- Fortlaufende Nummern, `snake_case` Beschreibung
+- Bereits ausgeführte Migrationen **niemals** ändern oder löschen
+- `${appUserPassword}` kann als Placeholder genutzt werden (siehe `V1`)
+
+Migration anwenden:
+
+```bash
+docker compose --profile migrate run --rm flyway
+```
+
+---
+
+## Projektstruktur
+
+```
+├── compose.yaml                   # Docker Compose (Postgres, Flyway, Backend)
+├── Dockerfile
+├── flyway/sql/                    # Datenbank-Migrationen
+├── docs/                          # Dokumentation
+└── src/main/java/.../nnnbackend/
+    ├── config/                    # Security, CORS
+    ├── controller/                # REST-Endpunkte
+    ├── dto/                       # Request/Response DTOs
+    │   ├── request/
+    │   └── response/
+    ├── entity/                    # JPA-Entities
+    ├── exception/                 # Fehlerbehandlung
+    ├── mapper/                    # Entity ↔ DTO
+    ├── repository/                # Spring Data Repositories
+    ├── service/                   # Business-Logik
+    └── user/                      # Auth, AppUser, CurrentUser
+```
+
+---
+
+## Konventionen
+
+### Branches
+
+`<type>/<issue-id>-<beschreibung>` → z.B. `feat/NNN-42-add-login-page`
+
+| Prefix | Zweck |
+|--------|-------|
+| `feat/` | Neues Feature |
+| `fix/` | Bugfix |
+| `docs/` | Dokumentation |
+| `chore/` | Aufräumarbeiten |
+| `refactor/` | Umbau |
+| `test/` | Tests |
+| `ci/` | CI/CD |
+
+### Commits
+
+```
+<type>(<scope>): <zusammenfassung>
+```
+
+Imperativ, max. 80 Zeichen — z.B. `feat(auth): add token refresh endpoint`
