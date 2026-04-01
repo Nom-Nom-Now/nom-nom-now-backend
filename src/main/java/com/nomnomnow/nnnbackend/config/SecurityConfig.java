@@ -35,7 +35,7 @@ public class SecurityConfig {
                         .userInfoEndpoint(userInfo -> userInfo
                                 .userService(oAuth2UserService(appUserService))
                         )
-                        .defaultSuccessUrl(frontendUrl, true)
+                        .defaultSuccessUrl(frontendUrl + "/home", true)
                 );
         return http.build();
     }
