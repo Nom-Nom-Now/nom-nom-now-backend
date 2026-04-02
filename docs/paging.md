@@ -1,12 +1,54 @@
-# Paginable endpint get recipes
+# Pagination – `GET /recipes`
 
-the endpoint getAllRecipes is paginable, which means that you can specify the page and the number of items per page in the query parameters.
-For example, if you want to get the first page with 10 items per page, you can use the following query parameters:
+Alle Rezepte werden paginiert zurückgegeben. Die Größe und Seite lassen sich per Query-Parameter steuern.
 
-``` 
-/recipes?page=1&per_page=10
+## Query-Parameter
+
+| Parameter | Typ | Default | Min | Max | Beschreibung |
+|-----------|-----|---------|-----|-----|--------------|
+| `page`    | int | `0`     | `0` | –   | Seitennummer (**0-basiert**) |
+| `size`    | int | `20`    | –   | `50`| Anzahl Einträge pro Seite |
+
+## Beispiele
+
+```
+# Erste Seite, 20 Einträge (Default)
+GET /recipes
+
+# Erste Seite, 10 Einträge
+GET /recipes?page=0&size=10
+
+# Zweite Seite, 10 Einträge
+GET /recipes?page=1&size=10
+
+# Dritte Seite, 5 Einträge
+GET /recipes?page=2&size=5
 ```
 
-page 1 is ?page=0
-page 2 is ?page=1
-...
+> ⚠️ `page` beginnt bei **0**, nicht bei 1.  
+> ⚠️ `size` ist auf maximal **50** begrenzt.
+
+## Response-Struktur
+
+Die Antwort ist ein Spring-`Page`-Objekt:
+
+```json
+{
+  "content": [ /* Array von Rezepten */ ],
+  "totalElements": 42,
+  "totalPages": 3,
+  "number": 0,
+  "size": 20,
+  "first": true,
+  "last": false
+}
+```
+
+| Feld            | Beschreibung |
+|-----------------|--------------|
+| `content`       | Rezepte der aktuellen Seite |
+| `totalElements` | Gesamtanzahl aller Rezepte |
+| `totalPages`    | Gesamtanzahl der Seiten |
+| `number`        | Aktuelle Seitennummer (0-basiert) |
+| `size`          | Gewählte Seitengröße |
+| `first` / `last`| Ob es die erste / letzte Seite ist |

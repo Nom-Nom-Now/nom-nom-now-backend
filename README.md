@@ -69,6 +69,7 @@ Google OAuth2 Login – Details siehe [`docs/google-login.md`](docs/google-login
 
 | Methode | Pfad | Zugriff |
 |---------|------|---------|
+| `GET` | `/recipes` · [Pagination](docs/paging.md) | 🌍 Öffentlich |
 | `GET` | `/recipes/**`, `/categories/**` | 🌍 Öffentlich |
 | `POST` | `/recipes`, `/categories` | 🔒 Authentifiziert |
 | `GET` | `/auth/me` | 🔒 Authentifiziert |
