@@ -12,6 +12,8 @@ import com.nomnomnow.nnnbackend.repository.IngredientRepository;
 import com.nomnomnow.nnnbackend.repository.RecipeRepository;
 import com.nomnomnow.nnnbackend.user.CurrentUserService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -48,8 +50,8 @@ public class RecipeService {
     }
 
     @Transactional(readOnly = true)
-    public List<Recipe> findAll() {
-        return recipeRepository.findAll();
+    public Page<Recipe> findAll(Pageable pageable) {
+        return recipeRepository.findAll(pageable);
     }
 
     private void attachCategories(Recipe recipe, Set<Long> categoryIds) {
