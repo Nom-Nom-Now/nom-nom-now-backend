@@ -51,6 +51,16 @@ export $(xargs < .env)
 ./mvnw spring-boot:run
 ```
 
+Für Windows:
+```bash
+Get-Content .env | ForEach-Object {                
+>>     if ($_ -match '^\s*([^#][^=]+)=(.*)$') {                                                                                                                                                                                     
+>>         Set-Item "Env:$($matches[1].Trim())" $matches[2].Trim()                                                                                                                                                                  
+>>     }                                                                                                                                                                                                                            
+>> }  
+./mvnw spring-boot:run
+```
+
 API erreichbar unter `http://localhost:8080`.
 
 ### 4 — Herunterfahren

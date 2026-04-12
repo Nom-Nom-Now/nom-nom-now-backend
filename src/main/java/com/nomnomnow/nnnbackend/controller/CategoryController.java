@@ -1,6 +1,6 @@
 package com.nomnomnow.nnnbackend.controller;
 
-import com.nomnomnow.nnnbackend.dto.response.CategoryResponse;
+import com.nomnomnow.nnnbackend.dto.response.CategoriesResponse;
 import com.nomnomnow.nnnbackend.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,7 +15,7 @@ public class CategoryController {
     private final CategoryService categoryService;
 
     @GetMapping
-    public CategoryResponse getAllCategories() {
+    public CategoriesResponse getAllCategories() {
         return categoryService.getAllCategories();
     }
 }

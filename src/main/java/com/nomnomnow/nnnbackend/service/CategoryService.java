@@ -1,6 +1,8 @@
 package com.nomnomnow.nnnbackend.service;
 
+import com.nomnomnow.nnnbackend.dto.response.CategoriesResponse;
 import com.nomnomnow.nnnbackend.dto.response.CategoryResponse;
+import com.nomnomnow.nnnbackend.dto.response.SuperCategoryResponse;
 import com.nomnomnow.nnnbackend.entity.Categories;
 import com.nomnomnow.nnnbackend.entity.SuperCategories;
 import lombok.RequiredArgsConstructor;
@@ -12,9 +14,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CategoryService {
 
-    public CategoryResponse getAllCategories() {
-        List<Categories> categories = Categories.getAll();
-        List<SuperCategories> superCategories = SuperCategories.getAll();
-        return new CategoryResponse(superCategories, categories);
+    public CategoriesResponse getAllCategories() {
+        List<SuperCategoryResponse> superCategories = SuperCategories.getAll().stream()
+                .map(sc -> new SuperCategoryResponse(sc.getId(), sc.getName()))
+                .toList();
+        List<CategoryResponse> categories = Categories.getAll().stream()
+                .map(cat -> new CategoryResponse(
+                        cat.getId(),
+                        cat.getName(),
+                        cat.getSuperCategoryId()
+                ))
+                .toList();
+        return new CategoriesResponse(superCategories, categories);
     }
 }

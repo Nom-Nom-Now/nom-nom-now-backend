@@ -99,20 +99,6 @@ public enum Categories {
         this.name = name;
     }
 
-    public static Categories fromName(String name) {
-        return Arrays.stream(values())
-                .filter(category -> category.name.equalsIgnoreCase(name))
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown category name: " + name));
-    }
-
-    public static Categories fromId(long id) {
-        return Arrays.stream(values())
-                .filter(category -> category.id == id)
-                .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("Unknown category id: " + id));
-    }
-
     public static List<Categories> getAll() {
         return Arrays.asList(values());
     }
