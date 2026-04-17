@@ -33,10 +33,10 @@ public class RecipeController {
 
     @GetMapping
     public Page<RecipeResponse> getAllRecipes(
-            @RequestParam(defaultValue = "0") @Min(0) int page ,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Max(50) int size
     ) {
-        return recipeService.findAll(PageRequest.of(page,size))
+        return recipeService.findAll(PageRequest.of(page, size))
                 .map(recipeMapper::toResponse);
 
     }

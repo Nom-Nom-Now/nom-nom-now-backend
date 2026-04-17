@@ -2,12 +2,10 @@ package com.nomnomnow.nnnbackend.service;
 
 import com.nomnomnow.nnnbackend.dto.request.RecipeComponentRequest;
 import com.nomnomnow.nnnbackend.dto.request.RecipeRequest;
-import com.nomnomnow.nnnbackend.entity.Category;
 import com.nomnomnow.nnnbackend.entity.Ingredient;
 import com.nomnomnow.nnnbackend.entity.Recipe;
 import com.nomnomnow.nnnbackend.entity.RecipeComponent;
 import com.nomnomnow.nnnbackend.exception.ResourceNotFoundException;
-import com.nomnomnow.nnnbackend.repository.CategoryRepository;
 import com.nomnomnow.nnnbackend.repository.IngredientRepository;
 import com.nomnomnow.nnnbackend.repository.RecipeRepository;
 import com.nomnomnow.nnnbackend.user.CurrentUserService;
@@ -17,20 +15,13 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class RecipeService {
 
-    private final CategoryRepository categoryRepository;
     private final IngredientRepository ingredientRepository;
     private final RecipeRepository recipeRepository;
     private final CurrentUserService currentUserService;
@@ -43,7 +34,7 @@ public class RecipeService {
         recipe.setCookingTime(request.cookingTime());
         recipe.setOwner(currentUserService.getCurrentUser());
 
-        attachCategories(recipe, request.categoryIds());
+        recipe.setCategories(request.categoryIds());
         attachComponents(recipe, request.components());
 
         return recipeRepository.save(recipe);
@@ -52,25 +43,6 @@ public class RecipeService {
     @Transactional(readOnly = true)
     public Page<Recipe> findAll(Pageable pageable) {
         return recipeRepository.findAll(pageable);
-    }
-
-    private void attachCategories(Recipe recipe, Set<Long> categoryIds) {
-        recipe.getCategories().clear();
-        if (categoryIds == null || categoryIds.isEmpty()) {
-            return;
-        }
-
-        var categories = categoryRepository.findAllById(categoryIds);
-        var foundIds = categories.stream()
-                .map(Category::getId)
-                .collect(Collectors.toSet());
-        var requestedIds = new HashSet<>(categoryIds);
-        requestedIds.removeAll(foundIds);
-        if (!requestedIds.isEmpty()) {
-            throw new ResourceNotFoundException("Unknown category ids: " + requestedIds);
-        }
-
-        recipe.getCategories().addAll(categories);
     }
 
     private void attachComponents(Recipe recipe, List<RecipeComponentRequest> componentRequests) {

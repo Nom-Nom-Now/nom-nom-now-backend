@@ -8,7 +8,7 @@ public record RecipeResponse(
         String instructions,
         Integer cookingTime,
         String ownerName,
-        List<CategoryResponse> categories,
+        String categories,
         List<RecipeComponentResponse> components
 ) {
 }

@@ -10,6 +10,7 @@ import org.hibernate.annotations.BatchSize;
 
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Entity
 @Data
@@ -33,15 +34,18 @@ public class Recipe {
     @JoinColumn(name = "owner_id")
     private AppUser owner;
 
-    @ManyToMany
-    @JoinTable(
-            name = "recipe_category",
-            schema = "app",
-            joinColumns = @JoinColumn(name = "recipe_id"),
-            inverseJoinColumns = @JoinColumn(name = "category_id")
-    )
-    @BatchSize(size = 20)
-    private Set<Category> categories = new HashSet<>();
+    @Column(name = "categories", columnDefinition = "TEXT")
+    private String categories;
+
+    public void setCategories(Set<Long> categories) {
+        if (categories == null || categories.isEmpty()) {
+            this.categories = null;
+            return;
+        }
+        this.categories = categories.stream()
+                .map(String::valueOf)
+                .collect(Collectors.joining(","));
+    }
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     @BatchSize(size = 20)
