@@ -230,8 +230,10 @@ jobs:
             # Migration ausführen (nutzt ./flyway/sql und .env-Variablen)
             docker compose --profile migrate run --rm flyway
 
-            # App starten/aktualisieren
-            docker compose up -d backend --remove-orphans
+            # App starten/aktualisieren (stop+rm avoids multi-network recreate bug)
+            docker compose stop backend 2>/dev/null || true
+            docker compose rm -f backend 2>/dev/null || true
+            docker compose up -d backend
 
             # Aufräumen
             docker image prune -f
