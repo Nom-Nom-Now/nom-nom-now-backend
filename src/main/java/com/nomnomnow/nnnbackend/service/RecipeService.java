@@ -7,17 +7,21 @@ import com.nomnomnow.nnnbackend.entity.Recipe;
 import com.nomnomnow.nnnbackend.entity.RecipeComponent;
 import com.nomnomnow.nnnbackend.exception.ResourceNotFoundException;
 import com.nomnomnow.nnnbackend.repository.IngredientRepository;
+import com.nomnomnow.nnnbackend.repository.RecipeComponentRepository;
 import com.nomnomnow.nnnbackend.repository.RecipeRepository;
 import com.nomnomnow.nnnbackend.user.CurrentUserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecipeService {
@@ -25,6 +29,7 @@ public class RecipeService {
     private final IngredientRepository ingredientRepository;
     private final RecipeRepository recipeRepository;
     private final CurrentUserService currentUserService;
+    private final RecipeComponentRepository recipeComponentRepository;
 
     @Transactional
     public Recipe create(RecipeRequest request) {
@@ -119,5 +124,38 @@ public class RecipeService {
 
         cachedIngredientsByName.put(cacheKey, ingredient);
         return ingredient;
+    }
+
+    @Transactional
+    public void deleteRecipe(long recipeId) {
+        var recipe = recipeRepository.findById(recipeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with id: " + recipeId));
+
+        var currentUser = currentUserService.getCurrentUser();
+        if (!recipe.getOwner().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You are not allowed to delete this recipe");
+        }
+
+        // Ingredient-IDs merken, bevor die Components via orphanRemoval gelöscht werden
+        var ingredientIds = recipe.getComponents().stream()
+                .map(component -> component.getIngredient().getId())
+                .collect(Collectors.toSet());
+
+        recipeRepository.delete(recipe);
+        // Flush, damit die gerade gelöschten RecipeComponents im anschließenden
+        // existsByIngredientId-Check nicht mehr sichtbar sind.
+        recipeRepository.flush();
+
+        deleteOrphanedIngredients(ingredientIds);
+        log.info("Deleted recipe {} with {} components", recipeId, ingredientIds.size());
+    }
+
+    private void deleteOrphanedIngredients(Set<Long> ingredientIds) {
+        for (Long ingredientId : ingredientIds) {
+            if (!recipeComponentRepository.existsByIngredientId(ingredientId)) {
+                ingredientRepository.deleteById(ingredientId);
+                log.debug("Deleted orphaned ingredient {}", ingredientId);
+            }
+        }
     }
 }

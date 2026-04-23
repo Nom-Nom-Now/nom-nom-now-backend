@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -39,5 +40,11 @@ public class RecipeController {
         return recipeService.findAll(PageRequest.of(page, size))
                 .map(recipeMapper::toResponse);
 
+    }
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteRecipe(@PathVariable long id) {
+        log.info("Deleting recipe {}", id);
+        recipeService.deleteRecipe(id);
     }
 }
