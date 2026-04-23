@@ -1,7 +1,6 @@
 services:
   postgres:
     image: postgres:18.3-alpine
-    container_name: nomnomnow-postgres
     restart: unless-stopped
     environment:
       POSTGRES_DB: nnn
@@ -11,7 +10,8 @@ services:
       - "5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-    networks: [internal]
+    networks:
+      - internal
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 10s
@@ -20,7 +20,8 @@ services:
 
   flyway:
     image: flyway/flyway:latest-alpine
-    profiles: ["migrate"]
+    profiles:
+      - migrate
     depends_on:
       postgres:
         condition: service_healthy
@@ -36,11 +37,11 @@ services:
       migrate
     volumes:
       - ./flyway/sql:/flyway/sql:ro
-    networks: [internal]
+    networks:
+      - internal
 
   backend:
     image: ghcr.io/nom-nom-now/nom-nom-now-backend:latest
-    container_name: nomnomnow-backend
     restart: unless-stopped
     env_file:
       - .env
