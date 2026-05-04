@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE app.recipe
+    ADD COLUMN IF NOT EXISTS price_per_person INTEGER;
+
+COMMIT;

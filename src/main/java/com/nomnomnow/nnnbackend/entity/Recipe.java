@@ -34,6 +34,9 @@ public class Recipe {
     @JoinColumn(name = "owner_id")
     private AppUser owner;
 
+    @Column(name = "price_per_person")
+    private Integer pricePerPerson;
+
     @Column(name = "categories", columnDefinition = "TEXT")
     private String categories;
 

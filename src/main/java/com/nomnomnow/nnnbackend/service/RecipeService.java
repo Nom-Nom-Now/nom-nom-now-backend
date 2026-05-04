@@ -37,6 +37,7 @@ public class RecipeService {
         recipe.setName(request.name().trim());
         recipe.setInstructions(request.instructions());
         recipe.setCookingTime(request.cookingTime());
+        recipe.setPricePerPerson(request.pricePerPerson());
         recipe.setOwner(currentUserService.getCurrentUser());
 
         recipe.setCategories(request.categoryIds());
