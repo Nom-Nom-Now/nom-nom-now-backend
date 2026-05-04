@@ -12,6 +12,7 @@ public record RecipeRequest(
         @NotBlank String name,
         String instructions,
         @PositiveOrZero Integer cookingTime,
+        @PositiveOrZero Integer pricePerPerson,
         Set<Long> categoryIds,
         @NotEmpty List<@Valid RecipeComponentRequest> components
 ) {
