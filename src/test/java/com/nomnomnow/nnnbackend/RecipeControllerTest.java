@@ -12,24 +12,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
-import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
-import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
-import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.request.RequestPostProcessor;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.oauth2Login;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -63,7 +58,6 @@ class RecipeControllerTest {
 
     @BeforeEach
     void setUp() {
-        // Create a test user in the database
         testUser = appUserRepository.findByGoogleId("test-google-id").orElseGet(() -> {
             var user = new AppUser();
             user.setGoogleId("test-google-id");
@@ -71,31 +65,15 @@ class RecipeControllerTest {
             user.setName("Test User");
             return appUserRepository.save(user);
         });
-
-        // Set up OAuth2 authentication in the security context
-        authenticateAs(testUser.getGoogleId(), testUser.getName(), testUser.getEmail());
     }
 
-    private void authenticateAs(String googleId, String name, String email) {
-        Map<String, Object> attributes = Map.of(
-                "sub", googleId,
-                "name", name,
-                "email", email
-        );
-
-        OAuth2User principal = new DefaultOAuth2User(
-                List.of(new SimpleGrantedAuthority("ROLE_USER")),
-                attributes,
-                "sub"
-        );
-
-        OAuth2AuthenticationToken auth = new OAuth2AuthenticationToken(
-                principal,
-                List.of(new SimpleGrantedAuthority("ROLE_USER")),
-                "google"
-        );
-
-        SecurityContextHolder.getContext().setAuthentication(auth);
+    private RequestPostProcessor loginAs(String sub, String name, String email) {
+        return oauth2Login()
+                .attributes(attrs -> {
+                    attrs.put("sub", sub);
+                    attrs.put("name", name);
+                    attrs.put("email", email);
+                });
     }
 
     private RecipeRequest buildRecipeRequest(String name, String instructions, int cookingTime, int pricePerPerson) {
@@ -106,6 +84,7 @@ class RecipeControllerTest {
     private MvcResult createRecipe(String name) throws Exception {
         var request = buildRecipeRequest(name, "Do something", 30, 5);
         return mockMvc.perform(post("/recipes")
+                        .with(loginAs(testUser.getGoogleId(), testUser.getName(), testUser.getEmail()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -119,6 +98,7 @@ class RecipeControllerTest {
         var request = buildRecipeRequest("Pasta Carbonara", "Boil pasta, fry pancetta", 25, 4);
 
         mockMvc.perform(post("/recipes")
+                        .with(loginAs(testUser.getGoogleId(), testUser.getName(), testUser.getEmail()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -139,6 +119,7 @@ class RecipeControllerTest {
         var request = buildRecipeRequest("", "Instructions", 30, 5);
 
         mockMvc.perform(post("/recipes")
+                        .with(loginAs(testUser.getGoogleId(), testUser.getName(), testUser.getEmail()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -149,6 +130,7 @@ class RecipeControllerTest {
         var request = new RecipeRequest("Soup", "Cook", 20, 5, null, List.of());
 
         mockMvc.perform(post("/recipes")
+                        .with(loginAs(testUser.getGoogleId(), testUser.getName(), testUser.getEmail()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
@@ -158,11 +140,8 @@ class RecipeControllerTest {
 
     @Test
     void getRecipes_returnsPage() throws Exception {
-        // Seed some recipes
         createRecipe("Recipe One");
         createRecipe("Recipe Two");
-
-        SecurityContextHolder.clearContext(); // GET is permitAll
 
         mockMvc.perform(get("/recipes")
                         .param("page", "0")
@@ -176,7 +155,6 @@ class RecipeControllerTest {
     @Test
     void getRecipes_withPagination() throws Exception {
         createRecipe("First");
-        SecurityContextHolder.clearContext();
 
         mockMvc.perform(get("/recipes")
                         .param("page", "0")
@@ -191,8 +169,6 @@ class RecipeControllerTest {
     @Test
     void getRecipeById_returnsRecipe() throws Exception {
         MvcResult result = createRecipe("My Recipe");
-        SecurityContextHolder.clearContext();
-
         String responseBody = result.getResponse().getContentAsString();
         Long id = objectMapper.readTree(responseBody).path("id").asLong();
 
@@ -204,8 +180,6 @@ class RecipeControllerTest {
 
     @Test
     void getRecipeById_returns404WhenNotFound() throws Exception {
-        SecurityContextHolder.clearContext();
-
         mockMvc.perform(get("/recipes/999999"))
                 .andExpect(status().isNotFound());
     }
@@ -223,6 +197,7 @@ class RecipeControllerTest {
         ));
 
         mockMvc.perform(put("/recipes/" + id)
+                        .with(loginAs(testUser.getGoogleId(), testUser.getName(), testUser.getEmail()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(updateRequest)))
                 .andExpect(status().isOk())
@@ -238,6 +213,7 @@ class RecipeControllerTest {
         var request = buildRecipeRequest("X", "Y", 10, 2);
 
         mockMvc.perform(put("/recipes/999999")
+                        .with(loginAs(testUser.getGoogleId(), testUser.getName(), testUser.getEmail()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isNotFound());
@@ -249,12 +225,10 @@ class RecipeControllerTest {
         String responseBody = createResult.getResponse().getContentAsString();
         Long id = objectMapper.readTree(responseBody).path("id").asLong();
 
-        // Switch to a different user
-        authenticateAs("other-google-id", "Other User", "other@example.com");
-
         var request = buildRecipeRequest("Stolen Recipe", "Hack", 10, 2);
 
         mockMvc.perform(put("/recipes/" + id)
+                        .with(loginAs("other-google-id", "Other User", "other@example.com"))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
@@ -268,18 +242,18 @@ class RecipeControllerTest {
         String responseBody = createResult.getResponse().getContentAsString();
         Long id = objectMapper.readTree(responseBody).path("id").asLong();
 
-        mockMvc.perform(delete("/recipes/" + id))
+        mockMvc.perform(delete("/recipes/" + id)
+                        .with(loginAs(testUser.getGoogleId(), testUser.getName(), testUser.getEmail())))
                 .andExpect(status().isNoContent());
 
-        // Verify it's gone
-        SecurityContextHolder.clearContext();
         mockMvc.perform(get("/recipes/" + id))
                 .andExpect(status().isNotFound());
     }
 
     @Test
     void deleteRecipe_returns404WhenNotFound() throws Exception {
-        mockMvc.perform(delete("/recipes/999999"))
+        mockMvc.perform(delete("/recipes/999999")
+                        .with(loginAs(testUser.getGoogleId(), testUser.getName(), testUser.getEmail())))
                 .andExpect(status().isNotFound());
     }
 
@@ -289,10 +263,8 @@ class RecipeControllerTest {
         String responseBody = createResult.getResponse().getContentAsString();
         Long id = objectMapper.readTree(responseBody).path("id").asLong();
 
-        // Switch to a different user
-        authenticateAs("other-google-id", "Other User", "other@example.com");
-
-        mockMvc.perform(delete("/recipes/" + id))
+        mockMvc.perform(delete("/recipes/" + id)
+                        .with(loginAs("other-google-id", "Other User", "other@example.com")))
                 .andExpect(status().isForbidden());
     }
 }

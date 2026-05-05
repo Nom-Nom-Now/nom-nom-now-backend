@@ -4,7 +4,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -38,9 +37,6 @@ class CategoryControllerTest {
 
     @Test
     void getCategories_returns200WithCorrectStructure() throws Exception {
-        // /categories is permitAll, so no auth needed
-        SecurityContextHolder.clearContext();
-
         mockMvc.perform(get("/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.superCategories").isArray())
@@ -49,8 +45,6 @@ class CategoryControllerTest {
 
     @Test
     void getCategories_superCategoriesHaveIdAndName() throws Exception {
-        SecurityContextHolder.clearContext();
-
         mockMvc.perform(get("/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.superCategories.length()").value(8))
@@ -60,8 +54,6 @@ class CategoryControllerTest {
 
     @Test
     void getCategories_categoriesHaveIdNameAndSuperCategoryId() throws Exception {
-        SecurityContextHolder.clearContext();
-
         mockMvc.perform(get("/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.categories").isNotEmpty())
@@ -72,8 +64,6 @@ class CategoryControllerTest {
 
     @Test
     void getCategories_containsExpectedSeasonalCategories() throws Exception {
-        SecurityContextHolder.clearContext();
-
         mockMvc.perform(get("/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.categories[?(@.name=='spring')]").isArray())
@@ -84,8 +74,6 @@ class CategoryControllerTest {
 
     @Test
     void getCategories_containsExpectedOriginCategories() throws Exception {
-        SecurityContextHolder.clearContext();
-
         mockMvc.perform(get("/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.categories[?(@.name=='italian')]").isArray())
@@ -95,8 +83,6 @@ class CategoryControllerTest {
 
     @Test
     void getCategories_totalCategoriesCount() throws Exception {
-        SecurityContextHolder.clearContext();
-
         mockMvc.perform(get("/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.categories.length()").value(73))
