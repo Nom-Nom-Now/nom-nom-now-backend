@@ -2,6 +2,13 @@ spring:
   jpa:
     hibernate:
       ddl-auto: create-drop
+    properties:
+      hibernate:
+        default_schema: app
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema-init.sql
   security:
     oauth2:
       client:
