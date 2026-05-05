@@ -51,6 +51,47 @@ public class RecipeService {
         return recipeRepository.findAll(pageable);
     }
 
+    @Transactional(readOnly = true)
+    public Recipe findById(long recipeId) {
+        return recipeRepository.findById(recipeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with id: " + recipeId));
+    }
+
+    @Transactional
+    public Recipe updateRecipe(long recipeId, RecipeRequest request) {
+        var recipe = recipeRepository.findById(recipeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with id: " + recipeId));
+
+        var currentUser = currentUserService.getCurrentUser();
+        if (!recipe.getOwner().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You are not allowed to update this recipe");
+        }
+
+        // Merke alte Ingredient-IDs vor dem Component-Update
+        var oldIngredientIds = recipe.getComponents().stream()
+                .map(component -> component.getIngredient().getId())
+                .collect(Collectors.toSet());
+
+        // Metadaten aktualisieren
+        recipe.setName(request.name().trim());
+        recipe.setInstructions(request.instructions());
+        recipe.setCookingTime(request.cookingTime());
+        recipe.setPricePerPerson(request.pricePerPerson());
+        recipe.setCategories(request.categoryIds());
+
+        // Components neu anhängen (reused helper)
+        attachComponents(recipe, request.components());
+
+        var saved = recipeRepository.save(recipe);
+        recipeRepository.flush();
+
+        // Orphaned Ingredients aufräumen
+        deleteOrphanedIngredients(oldIngredientIds);
+
+        log.info("Updated recipe {} with {} components", recipeId, saved.getComponents().size());
+        return saved;
+    }
+
     private void attachComponents(Recipe recipe, List<RecipeComponentRequest> componentRequests) {
         recipe.getComponents().clear();
         if (componentRequests == null || componentRequests.isEmpty()) {
