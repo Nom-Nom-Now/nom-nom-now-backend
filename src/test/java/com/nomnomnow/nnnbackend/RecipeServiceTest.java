@@ -207,7 +207,6 @@ class RecipeServiceTest {
         when(recipeRepository.findById(5L)).thenReturn(Optional.of(recipe));
         when(currentUserService.getCurrentUser()).thenReturn(ownerUser);
         when(recipeRepository.save(any(Recipe.class))).thenAnswer(inv -> inv.getArgument(0));
-        when(recipeComponentRepository.existsByIngredientId(anyLong())).thenReturn(false);
 
         var ingredient = new Ingredient();
         ingredient.setId(10L);
