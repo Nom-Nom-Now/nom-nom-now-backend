@@ -6,6 +6,7 @@ import com.nomnomnow.nnnbackend.dto.request.RecipeRequest;
 import com.nomnomnow.nnnbackend.entity.Unit;
 import com.nomnomnow.nnnbackend.user.AppUser;
 import com.nomnomnow.nnnbackend.user.AppUserRepository;
+import com.nomnomnow.nnnbackend.repository.RecipeRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,17 +55,29 @@ class RecipeControllerTest {
     @Autowired
     private AppUserRepository appUserRepository;
 
+    @Autowired
+    private RecipeRepository recipeRepository;
+
     private AppUser testUser;
+    private AppUser otherUser;
 
     @BeforeEach
     void setUp() {
-        testUser = appUserRepository.findByGoogleId("test-google-id").orElseGet(() -> {
-            var user = new AppUser();
-            user.setGoogleId("test-google-id");
-            user.setEmail("test@example.com");
-            user.setName("Test User");
-            return appUserRepository.save(user);
-        });
+        // Clean slate — prevents data leakage between tests
+        recipeRepository.deleteAll();
+        appUserRepository.deleteAll();
+
+        testUser = new AppUser();
+        testUser.setGoogleId("test-google-id");
+        testUser.setEmail("test@example.com");
+        testUser.setName("Test User");
+        testUser = appUserRepository.save(testUser);
+
+        otherUser = new AppUser();
+        otherUser.setGoogleId("other-google-id");
+        otherUser.setEmail("other@example.com");
+        otherUser.setName("Other User");
+        otherUser = appUserRepository.save(otherUser);
     }
 
     private RequestPostProcessor loginAs(String sub, String name, String email) {
@@ -228,7 +241,7 @@ class RecipeControllerTest {
         var request = buildRecipeRequest("Stolen Recipe", "Hack", 10, 2);
 
         mockMvc.perform(put("/recipes/" + id)
-                        .with(loginAs("other-google-id", "Other User", "other@example.com"))
+                        .with(loginAs(otherUser.getGoogleId(), otherUser.getName(), otherUser.getEmail()))
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isForbidden());
@@ -264,7 +277,7 @@ class RecipeControllerTest {
         Long id = objectMapper.readTree(responseBody).path("id").asLong();
 
         mockMvc.perform(delete("/recipes/" + id)
-                        .with(loginAs("other-google-id", "Other User", "other@example.com")))
+                        .with(loginAs(otherUser.getGoogleId(), otherUser.getName(), otherUser.getEmail())))
                 .andExpect(status().isForbidden());
     }
 }

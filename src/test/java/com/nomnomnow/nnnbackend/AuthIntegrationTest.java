@@ -47,6 +47,8 @@ class AuthIntegrationTest {
 
     @BeforeEach
     void setUp() {
+        // Clean slate for each test
+        appUserRepository.deleteAll();
         testUser = appUserRepository.findByGoogleId("auth-test-google-id").orElseGet(() -> {
             var user = new AppUser();
             user.setGoogleId("auth-test-google-id");
@@ -76,9 +78,10 @@ class AuthIntegrationTest {
     }
 
     @Test
-    void me_withMissingAuth_returns401Or403() throws Exception {
+    void me_withMissingAuth_returnsRedirectToLoginPage() throws Exception {
+        // Spring Security OAuth2 redirects unauthenticated requests to the login page (302)
         mockMvc.perform(get("/auth/me"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isFound());
     }
 
     @Test
