@@ -63,7 +63,8 @@ public class RecipeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with id: " + recipeId));
 
         var currentUser = currentUserService.getCurrentUser();
-        if (!recipe.getOwner().getId().equals(currentUser.getId())) {
+        var owner = recipe.getOwner();
+        if (owner == null || !owner.getId().equals(currentUser.getId())) {
             throw new AccessDeniedException("You are not allowed to update this recipe");
         }
 
@@ -174,7 +175,8 @@ public class RecipeService {
                 .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with id: " + recipeId));
 
         var currentUser = currentUserService.getCurrentUser();
-        if (!recipe.getOwner().getId().equals(currentUser.getId())) {
+        var owner = recipe.getOwner();
+        if (owner == null || !owner.getId().equals(currentUser.getId())) {
             throw new AccessDeniedException("You are not allowed to delete this recipe");
         }
 
@@ -193,11 +195,9 @@ public class RecipeService {
     }
 
     private void deleteOrphanedIngredients(Set<Long> ingredientIds) {
-        for (Long ingredientId : ingredientIds) {
-            if (!recipeComponentRepository.existsByIngredientId(ingredientId)) {
-                ingredientRepository.deleteById(ingredientId);
-                log.debug("Deleted orphaned ingredient {}", ingredientId);
-            }
+        long deleted = ingredientRepository.deleteOrphanedByIds(ingredientIds);
+        if (deleted > 0) {
+            log.debug("Deleted {} orphaned ingredients", deleted);
         }
     }
 }

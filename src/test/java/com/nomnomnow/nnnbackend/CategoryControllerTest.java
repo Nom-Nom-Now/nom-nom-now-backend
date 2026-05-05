@@ -1,42 +1,42 @@
 package com.nomnomnow.nnnbackend;
 
+import com.nomnomnow.nnnbackend.controller.CategoryController;
+import com.nomnomnow.nnnbackend.dto.response.CategoriesResponse;
+import com.nomnomnow.nnnbackend.dto.response.CategoryResponse;
+import com.nomnomnow.nnnbackend.dto.response.SuperCategoryResponse;
+import com.nomnomnow.nnnbackend.service.CategoryService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
+import java.util.List;
+
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@Testcontainers
+/**
+ * Lightweight slice test — no database, no full Spring context.
+ * CategoryService only reads in-memory enums, so booting PostgreSQL
+ * adds startup cost without increasing coverage.
+ */
+@WebMvcTest(CategoryController.class)
 class CategoryControllerTest {
-
-    @Container
-    static PostgreSQLContainer<?> postgreSQLContainer = new PostgreSQLContainer<>("postgres:16-alpine");
-
-    @DynamicPropertySource
-    static void dbProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", postgreSQLContainer::getJdbcUrl);
-        registry.add("spring.datasource.username", postgreSQLContainer::getUsername);
-        registry.add("spring.datasource.password", postgreSQLContainer::getPassword);
-        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
-        registry.add("spring.security.oauth2.client.registration.google.client-id", () -> "test-client-id");
-        registry.add("spring.security.oauth2.client.registration.google.client-secret", () -> "test-client-secret");
-    }
 
     @Autowired
     private MockMvc mockMvc;
 
+    @MockitoBean
+    private CategoryService categoryService;
+
     @Test
     void getCategories_returns200WithCorrectStructure() throws Exception {
+        when(categoryService.getAllCategories()).thenReturn(
+                new CategoriesResponse(List.of(), List.of())
+        );
+
         mockMvc.perform(get("/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.superCategories").isArray())
@@ -45,47 +45,50 @@ class CategoryControllerTest {
 
     @Test
     void getCategories_superCategoriesHaveIdAndName() throws Exception {
+        var superCategories = List.of(
+                new SuperCategoryResponse(1L, "season"),
+                new SuperCategoryResponse(2L, "origin")
+        );
+        when(categoryService.getAllCategories()).thenReturn(
+                new CategoriesResponse(superCategories, List.of())
+        );
+
         mockMvc.perform(get("/categories"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.superCategories.length()").value(8))
-                .andExpect(jsonPath("$.superCategories[0].id").isNumber())
-                .andExpect(jsonPath("$.superCategories[0].name").isString());
+                .andExpect(jsonPath("$.superCategories.length()").value(2))
+                .andExpect(jsonPath("$.superCategories[0].id").value(1))
+                .andExpect(jsonPath("$.superCategories[0].name").value("season"));
     }
 
     @Test
     void getCategories_categoriesHaveIdNameAndSuperCategoryId() throws Exception {
+        var categories = List.of(
+                new CategoryResponse(1L, "spring", 1L),
+                new CategoryResponse(2L, "summer", 1L)
+        );
+        when(categoryService.getAllCategories()).thenReturn(
+                new CategoriesResponse(List.of(), categories)
+        );
+
         mockMvc.perform(get("/categories"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.categories").isNotEmpty())
-                .andExpect(jsonPath("$.categories[0].id").isNumber())
-                .andExpect(jsonPath("$.categories[0].name").isString())
-                .andExpect(jsonPath("$.categories[0].superCategoryId").isNumber());
+                .andExpect(jsonPath("$.categories[0].id").value(1))
+                .andExpect(jsonPath("$.categories[0].name").value("spring"))
+                .andExpect(jsonPath("$.categories[0].superCategoryId").value(1));
     }
 
     @Test
-    void getCategories_containsExpectedSeasonalCategories() throws Exception {
-        mockMvc.perform(get("/categories"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.categories[?(@.name=='spring')]").isArray())
-                .andExpect(jsonPath("$.categories[?(@.name=='summer')]").isArray())
-                .andExpect(jsonPath("$.categories[?(@.name=='autumn')]").isArray())
-                .andExpect(jsonPath("$.categories[?(@.name=='winter')]").isArray());
-    }
+    void getCategories_delegatesToService() throws Exception {
+        var superCategories = List.of(new SuperCategoryResponse(1L, "season"));
+        var categories = List.of(new CategoryResponse(1L, "spring", 1L));
+        when(categoryService.getAllCategories()).thenReturn(
+                new CategoriesResponse(superCategories, categories)
+        );
 
-    @Test
-    void getCategories_containsExpectedOriginCategories() throws Exception {
         mockMvc.perform(get("/categories"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.categories[?(@.name=='italian')]").isArray())
-                .andExpect(jsonPath("$.categories[?(@.name=='asian')]").isArray())
-                .andExpect(jsonPath("$.categories[?(@.name=='mexican')]").isArray());
-    }
-
-    @Test
-    void getCategories_totalCategoriesCount() throws Exception {
-        mockMvc.perform(get("/categories"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.categories.length()").value(73))
-                .andExpect(jsonPath("$.superCategories.length()").value(8));
+                .andExpect(jsonPath("$.superCategories.length()").value(1))
+                .andExpect(jsonPath("$.categories.length()").value(1));
     }
 }

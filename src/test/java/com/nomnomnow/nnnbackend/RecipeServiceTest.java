@@ -277,13 +277,13 @@ class RecipeServiceTest {
 
         when(recipeRepository.findById(5L)).thenReturn(Optional.of(recipe));
         when(currentUserService.getCurrentUser()).thenReturn(ownerUser);
-        when(recipeComponentRepository.existsByIngredientId(10L)).thenReturn(false);
+        when(ingredientRepository.deleteOrphanedByIds(any())).thenReturn(1L);
 
         recipeService.deleteRecipe(5L);
 
         verify(recipeRepository).delete(recipe);
         verify(recipeRepository).flush();
-        verify(ingredientRepository).deleteById(10L);
+        verify(ingredientRepository).deleteOrphanedByIds(any());
     }
 
     @Test
@@ -300,12 +300,12 @@ class RecipeServiceTest {
 
         when(recipeRepository.findById(5L)).thenReturn(Optional.of(recipe));
         when(currentUserService.getCurrentUser()).thenReturn(ownerUser);
-        when(recipeComponentRepository.existsByIngredientId(10L)).thenReturn(true);
+        when(ingredientRepository.deleteOrphanedByIds(any())).thenReturn(0L);
 
         recipeService.deleteRecipe(5L);
 
         verify(recipeRepository).delete(recipe);
-        verify(ingredientRepository, never()).deleteById(anyLong());
+        verify(ingredientRepository).deleteOrphanedByIds(any());
     }
 
     @Test
