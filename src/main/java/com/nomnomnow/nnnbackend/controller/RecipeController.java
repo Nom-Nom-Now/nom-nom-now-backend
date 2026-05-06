@@ -47,13 +47,6 @@ public class RecipeController {
         return recipeMapper.toResponse(recipe);
     }
 
-    @PutMapping("/{id}")
-    public RecipeResponse updateRecipe(@PathVariable long id, @Valid @RequestBody RecipeRequest request) {
-        log.info("Updating recipe {}: {}", id, request);
-        var recipe = recipeService.updateRecipe(id, request);
-        return recipeMapper.toResponse(recipe);
-    }
-
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void deleteRecipe(@PathVariable long id) {
