@@ -174,6 +174,47 @@ curl -X POST http://localhost:8080/recipes \
   -F 'image=@/absolute/path/to/image.jpg;type=image/jpeg'
 ```
 
+## Update A Recipe From Curl
+
+Only the recipe owner can update a recipe. In the local `dev` profile, that owner is the automatic test user.
+
+JSON without changing the current image:
+
+```bash
+curl -X PUT http://localhost:8080/recipes/1 \
+  -H 'Content-Type: application/json' \
+  --data '{
+    "name": "Updated Dev Test Recipe",
+    "instructions": "Mix everything, then bake.",
+    "cookingTime": 25,
+    "pricePerPerson": 399,
+    "categoryIds": [1],
+    "components": [
+      { "name": "Flour", "quantity": 150, "unit": "GRAM" },
+      { "name": "Water", "quantity": 100, "unit": "MILLILITER" }
+    ]
+  }'
+```
+
+Multipart with a new image:
+
+```bash
+curl -X PUT http://localhost:8080/recipes/1 \
+  -F 'recipe={
+    "name": "Updated Dev Test Recipe With Image",
+    "instructions": "Mix everything, then bake.",
+    "cookingTime": 25,
+    "pricePerPerson": 399,
+    "categoryIds": [1],
+    "components": [
+      { "name": "Flour", "quantity": 150, "unit": "GRAM" }
+    ]
+  };type=application/json' \
+  -F 'image=@/absolute/path/to/image.jpg;type=image/jpeg'
+```
+
+`PUT /recipes/{id}` replaces the recipe fields, categories, and component list. If no image is sent, the existing image stays unchanged. If an image is sent, it replaces the old image.
+
 ## Reset Local Data
 
 Stop containers:

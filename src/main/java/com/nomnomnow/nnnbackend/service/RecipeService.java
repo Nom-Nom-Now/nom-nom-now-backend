@@ -43,17 +43,36 @@ public class RecipeService {
     @Transactional
     public Recipe create(RecipeRequest request, MultipartFile image) {
         var recipe = new Recipe();
-        recipe.setName(request.name().trim());
-        recipe.setInstructions(request.instructions());
-        recipe.setCookingTime(request.cookingTime());
-        recipe.setPricePerPerson(request.pricePerPerson());
         recipe.setOwner(currentUserService.getCurrentUser());
 
-        recipe.setCategories(request.categoryIds());
-        attachComponents(recipe, request.components());
+        applyRecipeRequest(recipe, request);
         attachImage(recipe, image);
 
         return recipeRepository.save(recipe);
+    }
+
+    @Transactional
+    public Recipe updateRecipe(long recipeId, RecipeRequest request) {
+        return updateRecipe(recipeId, request, null);
+    }
+
+    @Transactional
+    public Recipe updateRecipe(long recipeId, RecipeRequest request, MultipartFile image) {
+        var recipe = findRecipe(recipeId);
+        ensureCurrentUserOwns(recipe, "update");
+
+        var previousIngredientIds = collectIngredientIds(recipe);
+
+        applyRecipeFields(recipe, request);
+        recipe.getComponents().clear();
+        recipeRepository.flush();
+        attachComponents(recipe, request.components());
+        attachImage(recipe, image);
+
+        var savedRecipe = recipeRepository.saveAndFlush(recipe);
+        deleteOrphanedIngredients(previousIngredientIds);
+
+        return savedRecipe;
     }
 
     @Transactional(readOnly = true)
@@ -63,14 +82,31 @@ public class RecipeService {
 
     @Transactional(readOnly = true)
     public Recipe getRecipeImage(long recipeId) {
-        var recipe = recipeRepository.findById(recipeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with id: " + recipeId));
+        var recipe = findRecipe(recipeId);
 
         if (recipe.getImageData() == null || recipe.getImageData().length == 0) {
             throw new ResourceNotFoundException("Recipe image not found with recipe id: " + recipeId);
         }
 
         return recipe;
+    }
+
+    private Recipe findRecipe(long recipeId) {
+        return recipeRepository.findById(recipeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with id: " + recipeId));
+    }
+
+    private void applyRecipeRequest(Recipe recipe, RecipeRequest request) {
+        applyRecipeFields(recipe, request);
+        attachComponents(recipe, request.components());
+    }
+
+    private void applyRecipeFields(Recipe recipe, RecipeRequest request) {
+        recipe.setName(request.name().trim());
+        recipe.setInstructions(request.instructions());
+        recipe.setCookingTime(request.cookingTime());
+        recipe.setPricePerPerson(request.pricePerPerson());
+        recipe.setCategories(request.categoryIds());
     }
 
     private void attachImage(Recipe recipe, MultipartFile image) {
@@ -175,18 +211,11 @@ public class RecipeService {
 
     @Transactional
     public void deleteRecipe(long recipeId) {
-        var recipe = recipeRepository.findById(recipeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with id: " + recipeId));
-
-        var currentUser = currentUserService.getCurrentUser();
-        if (!recipe.getOwner().getId().equals(currentUser.getId())) {
-            throw new AccessDeniedException("You are not allowed to delete this recipe");
-        }
+        var recipe = findRecipe(recipeId);
+        ensureCurrentUserOwns(recipe, "delete");
 
         // Ingredient-IDs merken, bevor die Components via orphanRemoval gelöscht werden
-        var ingredientIds = recipe.getComponents().stream()
-                .map(component -> component.getIngredient().getId())
-                .collect(Collectors.toSet());
+        var ingredientIds = collectIngredientIds(recipe);
 
         recipeRepository.delete(recipe);
         // Flush, damit die gerade gelöschten RecipeComponents im anschließenden
@@ -195,6 +224,19 @@ public class RecipeService {
 
         deleteOrphanedIngredients(ingredientIds);
         log.info("Deleted recipe {} with {} components", recipeId, ingredientIds.size());
+    }
+
+    private void ensureCurrentUserOwns(Recipe recipe, String action) {
+        var currentUser = currentUserService.getCurrentUser();
+        if (recipe.getOwner() == null || !recipe.getOwner().getId().equals(currentUser.getId())) {
+            throw new AccessDeniedException("You are not allowed to " + action + " this recipe");
+        }
+    }
+
+    private Set<Long> collectIngredientIds(Recipe recipe) {
+        return recipe.getComponents().stream()
+                .map(component -> component.getIngredient().getId())
+                .collect(Collectors.toSet());
     }
 
     private void deleteOrphanedIngredients(Set<Long> ingredientIds) {

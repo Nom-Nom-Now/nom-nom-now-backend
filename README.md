@@ -109,6 +109,7 @@ Komplette lokale Schritt-für-Schritt-Anleitung: [`docs/local-development.md`](d
 | `GET` | `/recipes` · [Pagination](docs/paging.md) | 🌍 Öffentlich |
 | `GET` | `/recipes/**`, `/categories/**` | 🌍 Öffentlich |
 | `POST` | `/recipes`, `/categories` | 🔒 Authentifiziert |
+| `PUT` | `/recipes/{id}` | 🔒 Owner |
 | `GET` | `/auth/me` | 🔒 Authentifiziert |
 
 ---

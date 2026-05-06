@@ -161,6 +161,7 @@ https://api.deinedomain.com/login/oauth2/code/google
 |---------|------|---------|
 | `GET` | `/recipes/**`, `/categories/**` | 🌍 Öffentlich |
 | `POST` | `/recipes`, `/categories` | 🔒 Authentifiziert |
+| `PUT` | `/recipes/{id}` | 🔒 Owner |
 | `GET` | `/auth/me` | 🔒 Authentifiziert |
 
 ---

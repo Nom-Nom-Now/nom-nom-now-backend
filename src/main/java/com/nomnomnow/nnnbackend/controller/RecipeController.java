@@ -47,6 +47,27 @@ public class RecipeController {
         return recipeMapper.toResponse(recipe);
     }
 
+    @PutMapping(path = "/{id}", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public RecipeResponse updateRecipe(
+            @PathVariable long id,
+            @Valid @RequestBody RecipeRequest request
+    ) {
+        log.info("Updating recipe {} with request: {}", id, request);
+        var recipe = recipeService.updateRecipe(id, request);
+        return recipeMapper.toResponse(recipe);
+    }
+
+    @PutMapping(path = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public RecipeResponse updateRecipeWithImage(
+            @PathVariable long id,
+            @Valid @RequestPart("recipe") RecipeRequest request,
+            @RequestPart(value = "image", required = false) MultipartFile image
+    ) {
+        log.info("Updating recipe {} with multipart request: {}", id, request);
+        var recipe = recipeService.updateRecipe(id, request, image);
+        return recipeMapper.toResponse(recipe);
+    }
+
     @GetMapping
     public Page<RecipeResponse> getAllRecipes(
             @RequestParam(defaultValue = "0") @Min(0) int page,
