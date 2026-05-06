@@ -49,6 +49,8 @@ SPRING_DATASOURCE_PASSWORD=changeme
 FRONTEND_URL=http://localhost:5173
 APP_DEV_USER_EMAIL=dev@nomnomnow.local
 APP_DEV_USER_NAME="Local Dev User"
+APP_DEMO_DATA_ENABLED=true
+APP_DEMO_RECIPES_PER_CATEGORY=2
 ```
 
 Start the database and apply migrations:
@@ -139,6 +141,42 @@ When `SPRING_PROFILES_ACTIVE=dev` is active:
 - `POST /recipes` works without copying browser cookies or logging into Google.
 
 This mode is only for local development. Do not use it in production.
+
+## Demo Data
+
+The backend seeds demo recipes automatically when the `dev` profile starts:
+
+- controlled by `APP_DEMO_DATA_ENABLED`
+- enabled by default in `dev`
+- creates missing demo recipes only
+- default is `APP_DEMO_RECIPES_PER_CATEGORY=2`
+- the value is treated as a minimum of 2
+- every enum category gets at least 2 demo recipes
+- demo recipes are owned by the local test user, so they can be edited and deleted in local development
+
+Use this when you want a predictable showcase database:
+
+```bash
+docker compose down -v
+docker compose up -d postgres
+docker compose --profile migrate run --rm flyway
+set -a
+source .env
+set +a
+SPRING_PROFILES_ACTIVE=dev ./mvnw spring-boot:run
+```
+
+Check that data exists:
+
+```bash
+curl 'http://localhost:8080/recipes?size=5'
+```
+
+If you need an empty database for a specific test, set:
+
+```dotenv
+APP_DEMO_DATA_ENABLED=false
+```
 
 ## Create A Recipe From Curl
 

@@ -12,4 +12,6 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     @Override
     @EntityGraph(attributePaths = {"components.ingredient"})
     Page<Recipe> findAll(Pageable pageable);
+
+    boolean existsByName(String name);
 }

@@ -37,6 +37,8 @@ SPRING_DATASOURCE_PASSWORD=changeme
 FRONTEND_URL=http://localhost:5173
 APP_DEV_USER_EMAIL=dev@nomnomnow.local
 APP_DEV_USER_NAME="Local Dev User"
+APP_DEMO_DATA_ENABLED=true
+APP_DEMO_RECIPES_PER_CATEGORY=2
 ```
 
 ### 2 — Infrastruktur starten
@@ -79,6 +81,12 @@ curl http://localhost:8080/categories
 ```
 
 `/auth/me` muss den lokalen Testnutzer zurückgeben. Wenn das funktioniert, können geschützte Endpunkte wie `POST /recipes` ohne Google Login entwickelt werden.
+
+Im `dev`-Profil erstellt das Backend automatisch Demo-Rezepte, wenn sie fehlen. Standard: mindestens 2 Rezepte pro Kategorie. Abschalten:
+
+```dotenv
+APP_DEMO_DATA_ENABLED=false
+```
 
 ### 5 — Herunterfahren
 
