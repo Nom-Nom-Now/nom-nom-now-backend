@@ -13,6 +13,10 @@ public class CurrentUserService {
 
     public AppUser getCurrentUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.getPrincipal() instanceof AppUser user) {
+            return appUserRepository.findById(user.getId())
+                    .orElseThrow(() -> new IllegalStateException("User not found"));
+        }
         if (auth instanceof OAuth2AuthenticationToken token) {
             String googleId = token.getPrincipal().getAttribute("sub");
             return appUserRepository.findByGoogleId(googleId)
@@ -21,4 +25,3 @@ public class CurrentUserService {
         throw new IllegalStateException("Not authenticated via OAuth2");
     }
 }
-

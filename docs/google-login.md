@@ -1,5 +1,21 @@
 # Google Login
 
+## Lokale Entwicklung ohne Google
+
+Für normale lokale Entwicklung bitte **nicht** Google OAuth einrichten. Nutze stattdessen:
+
+```dotenv
+SPRING_PROFILES_ACTIVE=dev
+APP_DEV_USER_EMAIL=dev@nomnomnow.local
+APP_DEV_USER_NAME="Local Dev User"
+```
+
+Damit erstellt das Backend automatisch einen lokalen Testnutzer und geschützte Endpunkte wie `POST /recipes` funktionieren ohne Login. Siehe [`local-development.md`](local-development.md).
+
+Dieses Dokument brauchst du nur, wenn du den echten Google Login lokal testen willst oder Produktion konfigurierst.
+
+---
+
 ## Übersicht
 
 ```
@@ -69,7 +85,9 @@ FRONTEND_URL=http://localhost:5173
 ### 2 — Backend starten
 
 ```bash
-export $(xargs < .env)
+set -a
+source .env
+set +a
 ./mvnw spring-boot:run
 ```
 

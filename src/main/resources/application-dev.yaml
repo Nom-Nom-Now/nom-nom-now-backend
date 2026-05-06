@@ -1,0 +1,4 @@
+app:
+  dev-user:
+    email: ${APP_DEV_USER_EMAIL:dev@nomnomnow.local}
+    name: ${APP_DEV_USER_NAME:Local Dev User}

@@ -2,11 +2,13 @@
 
 Spring Boot REST API für Nom Nom Now – Rezepte erstellen, teilen und entdecken.
 
-> **Tech-Stack:** Java 25 · Spring Boot 4 · PostgreSQL · Flyway · Docker Compose · OAuth2 (Google)
+> **Tech-Stack:** Java 25 · Spring Boot 4 · PostgreSQL · Flyway · Docker Compose · OAuth2 (Google) · lokales Dev-Profil ohne Google
 
 ---
 
 ## Schnellstart
+
+Für normale lokale Entwicklung nutze das `dev`-Profil. Es deaktiviert Google OAuth2 und meldet jede Anfrage automatisch als lokalen Testnutzer an.
 
 ### Voraussetzungen
 
@@ -25,16 +27,16 @@ APP_DB_PASSWORD=changeme
 
 # Spring Boot
 SERVER_PORT=8080
-SPRING_PROFILES_ACTIVE=local
+SPRING_PROFILES_ACTIVE=dev
 SPRING_DOCKER_COMPOSE_ENABLED=false
 SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/nnn
 SPRING_DATASOURCE_USERNAME=nnn_app
 SPRING_DATASOURCE_PASSWORD=changeme
 
-# Google OAuth2
-GOOGLE_CLIENT_ID=your-google-client-id
-GOOGLE_CLIENT_SECRET=your-google-client-secret
+# Frontend + lokaler Testnutzer
 FRONTEND_URL=http://localhost:5173
+APP_DEV_USER_EMAIL=dev@nomnomnow.local
+APP_DEV_USER_NAME="Local Dev User"
 ```
 
 ### 2 — Infrastruktur starten
@@ -47,23 +49,37 @@ docker compose --profile migrate run --rm flyway
 ### 3 — Backend starten
 
 ```bash
-export $(xargs < .env)
+set -a
+source .env
+set +a
 ./mvnw spring-boot:run
 ```
 
-Für Windows:
-```bash
-Get-Content .env | ForEach-Object {                
->>     if ($_ -match '^\s*([^#][^=]+)=(.*)$') {                                                                                                                                                                                     
->>         Set-Item "Env:$($matches[1].Trim())" $matches[2].Trim()                                                                                                                                                                  
->>     }                                                                                                                                                                                                                            
->> }  
+Für Windows PowerShell:
+
+```powershell
+Get-Content .env | ForEach-Object {
+    if ($_ -match '^\s*([^#][^=]+)=(.*)$') {
+        $name = $matches[1].Trim()
+        $value = $matches[2].Trim().Trim('"')
+        Set-Item "Env:$name" $value
+    }
+}
 ./mvnw spring-boot:run
 ```
 
 API erreichbar unter `http://localhost:8080`.
 
-### 4 — Herunterfahren
+### 4 — Prüfen, ob alles läuft
+
+```bash
+curl http://localhost:8080/auth/me
+curl http://localhost:8080/categories
+```
+
+`/auth/me` muss den lokalen Testnutzer zurückgeben. Wenn das funktioniert, können geschützte Endpunkte wie `POST /recipes` ohne Google Login entwickelt werden.
+
+### 5 — Herunterfahren
 
 ```bash
 # App: Ctrl+C
@@ -75,7 +91,18 @@ docker compose down          # Container stoppen
 
 ## Authentifizierung
 
-Google OAuth2 Login – Details siehe [`docs/google-login.md`](docs/google-login.md).
+Lokale Entwicklung:
+
+- `SPRING_PROFILES_ACTIVE=dev`
+- kein Google Login nötig
+- Backend erstellt/benutzt automatisch den Testnutzer aus `APP_DEV_USER_EMAIL` und `APP_DEV_USER_NAME`
+- Der Frontend-Login-Button darf weiterhin geklickt werden; im Dev-Profil redirected `/oauth2/authorization/google` direkt zurück zu `${FRONTEND_URL}/home`
+
+Produktion oder echtes Login-Testen:
+
+- Google OAuth2 Login – Details siehe [`docs/google-login.md`](docs/google-login.md)
+
+Komplette lokale Schritt-für-Schritt-Anleitung: [`docs/local-development.md`](docs/local-development.md).
 
 | Methode | Pfad | Zugriff |
 |---------|------|---------|
