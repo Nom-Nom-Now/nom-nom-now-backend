@@ -7,6 +7,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.RequiredArgsConstructor;
 import org.hibernate.annotations.BatchSize;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -36,6 +38,19 @@ public class Recipe {
 
     @Column(name = "price_per_person")
     private Integer pricePerPerson;
+
+    @JdbcTypeCode(SqlTypes.VARBINARY)
+    @Column(name = "image_data")
+    private byte[] imageData;
+
+    @Column(name = "image_content_type")
+    private String imageContentType;
+
+    @Column(name = "image_filename")
+    private String imageFilename;
+
+    @Column(name = "image_size")
+    private Long imageSize;
 
     @Column(name = "categories", columnDefinition = "TEXT")
     private String categories;
