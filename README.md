@@ -48,6 +48,7 @@ docker compose --profile migrate run --rm flyway
 
 ### 3 — Backend starten
 
+In intellij geht auch einfach der start Button oben rechts.
 ```bash
 set -a
 source .env
