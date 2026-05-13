@@ -1,0 +1,12 @@
+BEGIN;
+
+ALTER TABLE app.recipe
+    ADD COLUMN IF NOT EXISTS image_data BYTEA,
+    ADD COLUMN IF NOT EXISTS image_content_type TEXT,
+    ADD COLUMN IF NOT EXISTS image_filename TEXT,
+    ADD COLUMN IF NOT EXISTS image_size BIGINT;
+
+ALTER TABLE app.recipe
+    ALTER COLUMN image_data SET STORAGE EXTERNAL;
+
+COMMIT;

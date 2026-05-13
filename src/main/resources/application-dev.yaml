@@ -1,0 +1,7 @@
+app:
+  dev-user:
+    email: ${APP_DEV_USER_EMAIL:dev@nomnomnow.local}
+    name: ${APP_DEV_USER_NAME:Local Dev User}
+  demo-data:
+    enabled: ${APP_DEMO_DATA_ENABLED:true}
+    recipes-per-category: ${APP_DEMO_RECIPES_PER_CATEGORY:2}

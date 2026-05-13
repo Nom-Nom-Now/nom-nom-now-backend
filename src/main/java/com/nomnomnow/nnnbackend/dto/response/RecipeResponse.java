@@ -8,6 +8,7 @@ public record RecipeResponse(
         String instructions,
         Integer cookingTime,
         Integer pricePerPerson,
+        String imageUrl,
         String ownerName,
         String categories,
         List<RecipeComponentResponse> components

@@ -7,6 +7,10 @@ server:
 spring:
   application:
     name: "NomNomNowBackend"
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   security:
     oauth2:
       client:
@@ -15,4 +19,3 @@ spring:
                 client-id: ${GOOGLE_CLIENT_ID:your-google-client-id}
                 client-secret: ${GOOGLE_CLIENT_SECRET:your-google-client-secret}
                 scope: openid, profile, email
-

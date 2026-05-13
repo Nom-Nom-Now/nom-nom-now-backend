@@ -20,6 +20,9 @@ public class RecipeMapper {
                 .toList();
 
         var ownerName = recipe.getOwner() != null ? recipe.getOwner().getName() : null;
+        var imageUrl = recipe.getImageData() != null && recipe.getImageData().length > 0
+                ? "/recipes/" + recipe.getId() + "/image"
+                : null;
 
         return new RecipeResponse(
                 recipe.getId(),
@@ -27,6 +30,7 @@ public class RecipeMapper {
                 recipe.getInstructions(),
                 recipe.getCookingTime(),
                 recipe.getPricePerPerson(),
+                imageUrl,
                 ownerName,
                 recipe.getCategories(),
                 components
