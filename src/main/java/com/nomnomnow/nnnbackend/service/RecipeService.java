@@ -142,8 +142,14 @@ public class RecipeService {
         var existingIngredientsById = loadExistingIngredients(componentRequests);
         var cachedIngredientsByName = new HashMap<String, Ingredient>();
 
+        var attachedIngredientIds = new HashSet<Long>();
+        var attachedIngredientNames = new HashSet<String>();
+
         for (RecipeComponentRequest componentRequest : componentRequests) {
-            var recipeComponent = buildComponent(recipe, componentRequest, existingIngredientsById, cachedIngredientsByName);
+            var ingredient = findOrCreateIngredient(componentRequest, existingIngredientsById, cachedIngredientsByName);
+            ensureIngredientNotAlreadyAttached(ingredient, attachedIngredientIds, attachedIngredientNames);
+
+            var recipeComponent = buildComponent(recipe, componentRequest, ingredient);
             recipe.getComponents().add(recipeComponent);
         }
     }
@@ -173,14 +179,33 @@ public class RecipeService {
 
     private RecipeComponent buildComponent(Recipe recipe,
                                            RecipeComponentRequest componentRequest,
-                                           Map<Long, Ingredient> existingIngredientsById,
-                                           Map<String, Ingredient> cachedIngredientsByName) {
+                                           Ingredient ingredient) {
         var recipeComponent = new RecipeComponent();
         recipeComponent.setRecipe(recipe);
         recipeComponent.setUnit(componentRequest.unit());
         recipeComponent.setQuantity(componentRequest.quantity());
-        recipeComponent.setIngredient(findOrCreateIngredient(componentRequest, existingIngredientsById, cachedIngredientsByName));
+        recipeComponent.setIngredient(ingredient);
         return recipeComponent;
+    }
+
+    private void ensureIngredientNotAlreadyAttached(Ingredient ingredient,
+                                                    Set<Long> attachedIngredientIds,
+                                                    Set<String> attachedIngredientNames) {
+        if (ingredient.getId() != null) {
+            if (!attachedIngredientIds.add(ingredient.getId())) {
+                throw duplicateIngredientException(ingredient);
+            }
+            return;
+        }
+
+        var nameKey = normalizeIngredientName(ingredient.getName());
+        if (!attachedIngredientNames.add(nameKey)) {
+            throw duplicateIngredientException(ingredient);
+        }
+    }
+
+    private BadRequestException duplicateIngredientException(Ingredient ingredient) {
+        return new BadRequestException("Use each ingredient only once per recipe: " + ingredient.getName());
     }
 
     private Ingredient findOrCreateIngredient(RecipeComponentRequest componentRequest,
@@ -192,7 +217,7 @@ public class RecipeService {
         }
 
         var trimmedName = componentRequest.ingredientName().trim();
-        var cacheKey = trimmedName.toLowerCase(Locale.ROOT);
+        var cacheKey = normalizeIngredientName(trimmedName);
 
         if (cachedIngredientsByName.containsKey(cacheKey)) {
             return cachedIngredientsByName.get(cacheKey);
@@ -207,6 +232,10 @@ public class RecipeService {
 
         cachedIngredientsByName.put(cacheKey, ingredient);
         return ingredient;
+    }
+
+    private String normalizeIngredientName(String name) {
+        return name.trim().toLowerCase(Locale.ROOT);
     }
 
     @Transactional
