@@ -6,6 +6,7 @@ import com.nomnomnow.nnnbackend.entity.Ingredient;
 import com.nomnomnow.nnnbackend.entity.Recipe;
 import com.nomnomnow.nnnbackend.entity.RecipeComponent;
 import com.nomnomnow.nnnbackend.entity.Unit;
+import com.nomnomnow.nnnbackend.exception.BadRequestException;
 import com.nomnomnow.nnnbackend.repository.IngredientRepository;
 import com.nomnomnow.nnnbackend.repository.RecipeComponentRepository;
 import com.nomnomnow.nnnbackend.repository.RecipeRepository;
@@ -57,6 +58,25 @@ class RecipeServiceTest {
                 currentUserService,
                 recipeComponentRepository
         );
+    }
+
+    @Test
+    void createRejectsDuplicateIngredientNamesBeforeSavingRecipe() {
+        var owner = user(42L);
+
+        when(currentUserService.getCurrentUser()).thenReturn(owner);
+        when(ingredientRepository.findByNameIgnoreCase("Salt")).thenReturn(Optional.empty());
+        when(ingredientRepository.save(any(Ingredient.class))).thenAnswer(invocation -> {
+            var ingredient = (Ingredient) invocation.getArgument(0);
+            ingredient.setId(20L);
+            return ingredient;
+        });
+
+        assertThatThrownBy(() -> recipeService.create(requestWithDuplicateIngredientNames()))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("Use each ingredient only once per recipe: Salt");
+
+        verify(recipeRepository, never()).save(any());
     }
 
     @Test
@@ -151,6 +171,20 @@ class RecipeServiceTest {
                 499,
                 new LinkedHashSet<>(List.of(2L, 3L)),
                 List.of(new RecipeComponentRequest(ingredientId, "Smoke Water", BigDecimal.valueOf(3), Unit.MILLILITER))
+        );
+    }
+
+    private RecipeRequest requestWithDuplicateIngredientNames() {
+        return new RecipeRequest(
+                "Duplicate Ingredient Recipe",
+                "Updated instructions",
+                35,
+                499,
+                new LinkedHashSet<>(List.of(2L, 3L)),
+                List.of(
+                        new RecipeComponentRequest(null, "Salt", BigDecimal.valueOf(2), Unit.GRAM),
+                        new RecipeComponentRequest(null, " Salt ", BigDecimal.valueOf(3), Unit.GRAM)
+                )
         );
     }
 
