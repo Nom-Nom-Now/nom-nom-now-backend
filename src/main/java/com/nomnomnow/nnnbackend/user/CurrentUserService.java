@@ -1,6 +1,7 @@
 package com.nomnomnow.nnnbackend.user;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.AuthenticationCredentialsNotFoundException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.client.authentication.OAuth2AuthenticationToken;
 import org.springframework.stereotype.Service;
@@ -10,6 +11,7 @@ import org.springframework.stereotype.Service;
 public class CurrentUserService {
 
     private final AppUserRepository appUserRepository;
+    private final AppUserService appUserService;
 
     public AppUser getCurrentUser() {
         var auth = SecurityContextHolder.getContext().getAuthentication();
@@ -18,10 +20,8 @@ public class CurrentUserService {
                     .orElseThrow(() -> new IllegalStateException("User not found"));
         }
         if (auth instanceof OAuth2AuthenticationToken token) {
-            String googleId = token.getPrincipal().getAttribute("sub");
-            return appUserRepository.findByGoogleId(googleId)
-                    .orElseThrow(() -> new IllegalStateException("User not found"));
+            return appUserService.findOrCreate(token.getPrincipal());
         }
-        throw new IllegalStateException("Not authenticated via OAuth2");
+        throw new AuthenticationCredentialsNotFoundException("Not authenticated");
     }
 }
