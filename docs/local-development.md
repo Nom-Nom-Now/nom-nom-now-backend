@@ -95,11 +95,12 @@ Expected `/auth/me` response:
 {
   "id": 1,
   "email": "dev@nomnomnow.local",
-  "name": "Local Dev User"
+  "name": "Local Dev User",
+  "createdAt": "2026-05-06T18:33:47.96383Z"
 }
 ```
 
-The `id` can be different. The email and name should match your `.env`.
+The `id` and `createdAt` values can be different. The email and name should match your `.env`.
 
 ## Frontend Setup
 
