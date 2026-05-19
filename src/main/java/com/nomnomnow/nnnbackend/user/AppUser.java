@@ -3,6 +3,9 @@ package com.nomnomnow.nnnbackend.user;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.OffsetDateTime;
 
 @Entity
 @Table(name = "app_user", schema = "app")
@@ -21,5 +24,8 @@ public class AppUser {
     private String email;
 
     private String name;
-}
 
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+}
