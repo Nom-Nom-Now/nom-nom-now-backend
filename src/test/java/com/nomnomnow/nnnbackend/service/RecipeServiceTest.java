@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
@@ -150,6 +152,37 @@ class RecipeServiceTest {
 
         verify(recipeRepository, never()).saveAndFlush(any());
         verifyNoInteractions(ingredientRepository, recipeComponentRepository);
+    }
+
+    @Test
+    void findByOwnerReturnsRecipesForGivenUser() {
+        var owner = user(42L);
+        var recipe1 = recipe(1L, owner);
+        var recipe2 = recipe(2L, owner);
+        var pageable = PageRequest.of(0, 20);
+        var expectedPage = new PageImpl<>(List.of(recipe1, recipe2), pageable, 2);
+
+        when(recipeRepository.findByOwnerId(42L, pageable)).thenReturn(expectedPage);
+
+        var result = recipeService.findByOwner(42L, pageable);
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent()).containsExactly(recipe1, recipe2);
+        verify(recipeRepository).findByOwnerId(42L, pageable);
+    }
+
+    @Test
+    void findByOwnerReturnsEmptyPageWhenUserHasNoRecipes() {
+        var pageable = PageRequest.of(0, 20);
+        var emptyPage = new PageImpl<>(List.<Recipe>of(), pageable, 0);
+
+        when(recipeRepository.findByOwnerId(99L, pageable)).thenReturn(emptyPage);
+
+        var result = recipeService.findByOwner(99L, pageable);
+
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isZero();
+        verify(recipeRepository).findByOwnerId(99L, pageable);
     }
 
     private RecipeRequest request() {
