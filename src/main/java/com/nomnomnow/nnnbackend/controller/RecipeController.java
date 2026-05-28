@@ -95,16 +95,6 @@ public class RecipeController {
         return recipes.map(recipeMapper::toResponse);
     }
 
-    @GetMapping("/user/{userId}")
-    public Page<RecipeResponse> getUserRecipes(
-            @PathVariable long userId,
-            @RequestParam(defaultValue = "0") @Min(0) int page,
-            @RequestParam(defaultValue = "20") @Max(50) int size
-    ) {
-        return recipeService.findByOwner(userId, PageRequest.of(page, size))
-                .map(recipeMapper::toResponse);
-    }
-
     @GetMapping("/{id}/image")
     public ResponseEntity<byte[]> getRecipeImage(@PathVariable long id) {
         var recipe = recipeService.getRecipeImage(id);
