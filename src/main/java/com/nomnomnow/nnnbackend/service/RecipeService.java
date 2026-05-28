@@ -86,6 +86,20 @@ public class RecipeService {
     }
 
     @Transactional(readOnly = true)
+    public Page<Recipe> search(String query, Pageable pageable) {
+        return recipeRepository.searchByNameOrIngredient(escapeLike(query), pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Recipe> searchByOwner(Long ownerId, String query, Pageable pageable) {
+        return recipeRepository.searchByOwnerAndNameOrIngredient(ownerId, escapeLike(query), pageable);
+    }
+
+    static String escapeLike(String value) {
+        return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
+
+    @Transactional(readOnly = true)
     public Recipe getRecipeImage(long recipeId) {
         var recipe = findRecipe(recipeId);
 

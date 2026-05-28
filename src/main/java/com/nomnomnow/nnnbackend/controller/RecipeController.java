@@ -70,22 +70,29 @@ public class RecipeController {
 
     @GetMapping
     public Page<RecipeResponse> getAllRecipes(
+            @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Max(50) int size
     ) {
-        return recipeService.findAll(PageRequest.of(page, size))
-                .map(recipeMapper::toResponse);
-
+        var pageable = PageRequest.of(page, size);
+        var recipes = (q != null && !q.isBlank())
+                ? recipeService.search(q, pageable)
+                : recipeService.findAll(pageable);
+        return recipes.map(recipeMapper::toResponse);
     }
 
     @GetMapping("/user/{userId}")
     public Page<RecipeResponse> getUserRecipes(
             @PathVariable long userId,
+            @RequestParam(required = false) String q,
             @RequestParam(defaultValue = "0") @Min(0) int page,
             @RequestParam(defaultValue = "20") @Max(50) int size
     ) {
-        return recipeService.findByOwner(userId, PageRequest.of(page, size))
-                .map(recipeMapper::toResponse);
+        var pageable = PageRequest.of(page, size);
+        var recipes = (q != null && !q.isBlank())
+                ? recipeService.searchByOwner(userId, q, pageable)
+                : recipeService.findByOwner(userId, pageable);
+        return recipes.map(recipeMapper::toResponse);
     }
 
     @GetMapping("/{id}/image")

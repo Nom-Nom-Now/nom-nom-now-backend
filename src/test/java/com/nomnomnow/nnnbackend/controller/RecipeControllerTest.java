@@ -98,6 +98,46 @@ class RecipeControllerTest {
         verify(recipeService).findByOwner(eq(7L), eq(PageRequest.of(2, 10)));
     }
 
+    @Test
+    void getAllRecipesWithQueryDelegatesToSearch() throws Exception {
+        var emptyPage = new PageImpl<Recipe>(new ArrayList<>());
+        when(recipeService.search(eq("pizza"), any(PageRequest.class))).thenReturn(emptyPage);
+
+        mockMvc.perform(get("/recipes").param("q", "pizza"));
+
+        verify(recipeService).search(eq("pizza"), any(PageRequest.class));
+    }
+
+    @Test
+    void getAllRecipesWithoutQueryDelegatesToFindAll() throws Exception {
+        var emptyPage = new PageImpl<Recipe>(new ArrayList<>());
+        when(recipeService.findAll(any(PageRequest.class))).thenReturn(emptyPage);
+
+        mockMvc.perform(get("/recipes"));
+
+        verify(recipeService).findAll(any(PageRequest.class));
+    }
+
+    @Test
+    void getUserRecipesWithQueryDelegatesToSearchByOwner() throws Exception {
+        var emptyPage = new PageImpl<Recipe>(new ArrayList<>());
+        when(recipeService.searchByOwner(eq(42L), eq("pasta"), any(PageRequest.class))).thenReturn(emptyPage);
+
+        mockMvc.perform(get("/recipes/user/42").param("q", "pasta"));
+
+        verify(recipeService).searchByOwner(eq(42L), eq("pasta"), any(PageRequest.class));
+    }
+
+    @Test
+    void getUserRecipesWithBlankQueryDelegatesToFindByOwner() throws Exception {
+        var emptyPage = new PageImpl<Recipe>(new ArrayList<>());
+        when(recipeService.findByOwner(eq(42L), any(PageRequest.class))).thenReturn(emptyPage);
+
+        mockMvc.perform(get("/recipes/user/42").param("q", "   "));
+
+        verify(recipeService).findByOwner(eq(42L), any(PageRequest.class));
+    }
+
     private String validRecipeJson() {
         return """
                 {
