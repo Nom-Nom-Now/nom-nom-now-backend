@@ -28,7 +28,7 @@ import static java.time.DayOfWeek.MONDAY;
 @RequiredArgsConstructor
 public class RecipePlanService {
 
-    private static final int DAYS_IN_WEEK = 7;
+    private static final long DAYS_IN_WEEK = 7L;
 
     private final RecipePlanRepository recipePlanRepository;
     private final RecipeRepository recipeRepository;
@@ -83,7 +83,7 @@ public class RecipePlanService {
             return recipePlanRepository.findByOwnerAndDateRange(currentUser, weekStart, weekEnd);
         }
 
-        List<Recipe> randomRecipes = recipeRepository.findRandomRecipes(PageRequest.of(0, DAYS_IN_WEEK));
+        List<Recipe> randomRecipes = recipeRepository.findRandomRecipes(PageRequest.of(0, (int) DAYS_IN_WEEK));
 
         if (randomRecipes.isEmpty()) {
             return List.of();
