@@ -81,6 +81,11 @@ public class RecipeService {
     }
 
     @Transactional(readOnly = true)
+    public Page<Recipe> findByOwner(Long ownerId, Pageable pageable) {
+        return recipeRepository.findByOwnerId(ownerId, pageable);
+    }
+
+    @Transactional(readOnly = true)
     public Recipe getRecipeImage(long recipeId) {
         var recipe = findRecipe(recipeId);
 

@@ -13,5 +13,8 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
     @EntityGraph(attributePaths = {"components.ingredient"})
     Page<Recipe> findAll(Pageable pageable);
 
+    @EntityGraph(attributePaths = {"components.ingredient"})
+    Page<Recipe> findByOwnerId(Long ownerId, Pageable pageable);
+
     boolean existsByName(String name);
 }
