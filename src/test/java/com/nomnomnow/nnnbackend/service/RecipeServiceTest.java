@@ -17,6 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
@@ -150,6 +152,87 @@ class RecipeServiceTest {
 
         verify(recipeRepository, never()).saveAndFlush(any());
         verifyNoInteractions(ingredientRepository, recipeComponentRepository);
+    }
+
+    @Test
+    void findByOwnerReturnsRecipesForGivenUser() {
+        var owner = user(42L);
+        var recipe1 = recipe(1L, owner);
+        var recipe2 = recipe(2L, owner);
+        var pageable = PageRequest.of(0, 20);
+        var expectedPage = new PageImpl<>(List.of(recipe1, recipe2), pageable, 2);
+
+        when(recipeRepository.findByOwnerId(42L, pageable)).thenReturn(expectedPage);
+
+        var result = recipeService.findByOwner(42L, pageable);
+
+        assertThat(result.getContent()).hasSize(2);
+        assertThat(result.getContent()).containsExactly(recipe1, recipe2);
+        verify(recipeRepository).findByOwnerId(42L, pageable);
+    }
+
+    @Test
+    void findByOwnerReturnsEmptyPageWhenUserHasNoRecipes() {
+        var pageable = PageRequest.of(0, 20);
+        var emptyPage = new PageImpl<>(List.<Recipe>of(), pageable, 0);
+
+        when(recipeRepository.findByOwnerId(99L, pageable)).thenReturn(emptyPage);
+
+        var result = recipeService.findByOwner(99L, pageable);
+
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isZero();
+        verify(recipeRepository).findByOwnerId(99L, pageable);
+    }
+
+    @Test
+    void searchDelegatesToRepositoryAndEscapesWildcards() {
+        var pageable = PageRequest.of(0, 20);
+        var recipe = recipe(1L, user(42L));
+        var expectedPage = new PageImpl<>(List.of(recipe), pageable, 1);
+
+        when(recipeRepository.searchByNameOrIngredient("pizza", pageable)).thenReturn(expectedPage);
+
+        var result = recipeService.search("pizza", pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        verify(recipeRepository).searchByNameOrIngredient("pizza", pageable);
+    }
+
+    @Test
+    void searchEscapesPercentAndUnderscore() {
+        var pageable = PageRequest.of(0, 20);
+        var emptyPage = new PageImpl<>(List.<Recipe>of(), pageable, 0);
+
+        when(recipeRepository.searchByNameOrIngredient("100\\%", pageable)).thenReturn(emptyPage);
+
+        var result = recipeService.search("100%", pageable);
+
+        assertThat(result.getContent()).isEmpty();
+        verify(recipeRepository).searchByNameOrIngredient("100\\%", pageable);
+    }
+
+    @Test
+    void searchByOwnerDelegatesToRepository() {
+        var pageable = PageRequest.of(0, 20);
+        var recipe = recipe(1L, user(42L));
+        var expectedPage = new PageImpl<>(List.of(recipe), pageable, 1);
+
+        when(recipeRepository.searchByOwnerAndNameOrIngredient(42L, "soup", pageable)).thenReturn(expectedPage);
+
+        var result = recipeService.searchByOwner(42L, "soup", pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        verify(recipeRepository).searchByOwnerAndNameOrIngredient(42L, "soup", pageable);
+    }
+
+    @Test
+    void escapeLikeHandlesAllSpecialChars() {
+        assertThat(RecipeService.escapeLike("abc")).isEqualTo("abc");
+        assertThat(RecipeService.escapeLike("test%")).isEqualTo("test\\%");
+        assertThat(RecipeService.escapeLike("a_b")).isEqualTo("a\\_b");
+        assertThat(RecipeService.escapeLike("50% off_")).isEqualTo("50\\% off\\_");
+        assertThat(RecipeService.escapeLike("back\\slash")).isEqualTo("back\\\\slash");
     }
 
     private RecipeRequest request() {
