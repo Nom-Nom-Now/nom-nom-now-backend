@@ -37,10 +37,14 @@ public class RecipePlanService {
 
     @Transactional
     public List<RecipePlanResponse> getWeeklyPlan(LocalDate weekStart) {
+        return mapToResponses(getOrCreateWeeklyPlansForCurrentUser(weekStart));
+    }
+
+    @Transactional
+    public List<RecipePlan> getOrCreateWeeklyPlansForCurrentUser(LocalDate weekStart) {
         AppUser currentUser = currentUserService.getCurrentUser();
         LocalDate normalizedWeekStart = normalizeWeekStart(weekStart);
         validateWeekAccess(currentUser, normalizedWeekStart);
-
         LocalDate weekEnd = normalizedWeekStart.plusDays(DAYS_IN_WEEK - 1);
 
         List<RecipePlan> plans = recipePlanRepository.findByOwnerAndDateRange(
@@ -50,7 +54,7 @@ public class RecipePlanService {
             plans = generateWeeklyPlan(currentUser, normalizedWeekStart);
         }
 
-        return mapToResponses(plans);
+        return plans;
     }
 
     @Transactional
@@ -76,6 +80,20 @@ public class RecipePlanService {
         return mapToResponses(savedPlans);
     }
 
+    @Transactional
+    public RecipePlanResponse refreshPlanDay(LocalDate planDate) {
+        AppUser currentUser = currentUserService.getCurrentUser();
+        validateWeekRefreshAccess(normalizeWeekStart(planDate));
+
+        RecipePlan plan = recipePlanRepository.findByOwnerAndPlanDate(currentUser, planDate)
+                .orElseGet(() -> createPlan(currentUser, planDate));
+        Long currentRecipeId = plan.getRecipe() != null ? plan.getRecipe().getId() : null;
+
+        plan.setRecipe(findRandomRecipeForDay(currentRecipeId));
+
+        return mapToResponse(recipePlanRepository.save(plan));
+    }
+
     private List<RecipePlan> generateWeeklyPlan(AppUser currentUser, LocalDate weekStart) {
         LocalDate weekEnd = weekStart.plusDays(DAYS_IN_WEEK - 1);
 
@@ -97,19 +115,40 @@ public class RecipePlanService {
                 .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with id: " + recipeId));
     }
 
+    private Recipe findRandomRecipeForDay(Long currentRecipeId) {
+        List<Recipe> randomRecipes = currentRecipeId == null
+                ? recipeRepository.findRandomRecipes(PageRequest.of(0, 1))
+                : recipeRepository.findRandomRecipesExcluding(currentRecipeId, PageRequest.of(0, 1));
+
+        if (randomRecipes.isEmpty() && currentRecipeId != null) {
+            randomRecipes = recipeRepository.findRandomRecipes(PageRequest.of(0, 1));
+        }
+
+        if (randomRecipes.isEmpty()) {
+            throw new BadRequestException("No recipes available for refreshing this meal plan day");
+        }
+
+        return randomRecipes.getFirst();
+    }
+
     private List<RecipePlan> createPlans(AppUser owner, List<Recipe> recipes, LocalDate weekStart) {
         List<RecipePlan> plans = new ArrayList<>();
 
         for (int i = 0; i < recipes.size(); i++) {
-            RecipePlan plan = new RecipePlan();
-            plan.setOwner(owner);
+            RecipePlan plan = createPlan(owner, weekStart.plusDays(i));
             plan.setRecipe(recipes.get(i));
-            plan.setPlanDate(weekStart.plusDays(i));
 
             plans.add(plan);
         }
 
         return plans;
+    }
+
+    private RecipePlan createPlan(AppUser owner, LocalDate planDate) {
+        RecipePlan plan = new RecipePlan();
+        plan.setOwner(owner);
+        plan.setPlanDate(planDate);
+        return plan;
     }
 
     private List<RecipePlanResponse> mapToResponses(List<RecipePlan> plans) {

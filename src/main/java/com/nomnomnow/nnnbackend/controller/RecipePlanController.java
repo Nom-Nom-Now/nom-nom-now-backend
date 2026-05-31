@@ -30,4 +30,10 @@ public class RecipePlanController {
             @Valid @RequestBody RecipePlanRequest request) {
         return ResponseEntity.ok(recipePlanService.saveWeeklyPlan(request));
     }
+
+    @PatchMapping("/{planDate}/refresh")
+    public ResponseEntity<RecipePlanResponse> refreshPlanDay(
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate planDate) {
+        return ResponseEntity.ok(recipePlanService.refreshPlanDay(planDate));
+    }
 }
