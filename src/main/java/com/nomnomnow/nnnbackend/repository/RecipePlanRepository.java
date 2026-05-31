@@ -10,6 +10,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface RecipePlanRepository extends JpaRepository<RecipePlan, Long> {
@@ -26,6 +27,8 @@ public interface RecipePlanRepository extends JpaRepository<RecipePlan, Long> {
             @Param("endDate") LocalDate endDate);
 
     boolean existsByOwnerAndPlanDateBetween(AppUser owner, LocalDate startDate, LocalDate endDate);
+
+    Optional<RecipePlan> findByOwnerAndPlanDate(AppUser owner, LocalDate planDate);
 
     @Modifying(flushAutomatically = true, clearAutomatically = true)
     void deleteByOwnerAndPlanDateBetween(AppUser owner, LocalDate startDate, LocalDate endDate);

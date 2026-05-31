@@ -51,4 +51,11 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
     @Query("SELECT r FROM Recipe r ORDER BY function('random')")
     List<Recipe> findRandomRecipes(Pageable pageable);
+
+    @Query("""
+        SELECT r FROM Recipe r
+        WHERE r.id <> :excludedRecipeId
+        ORDER BY function('random')
+    """)
+    List<Recipe> findRandomRecipesExcluding(@Param("excludedRecipeId") Long excludedRecipeId, Pageable pageable);
 }
