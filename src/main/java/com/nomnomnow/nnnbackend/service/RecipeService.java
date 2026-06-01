@@ -1,6 +1,7 @@
 package com.nomnomnow.nnnbackend.service;
 
 import com.nomnomnow.nnnbackend.dto.request.RecipeComponentRequest;
+import com.nomnomnow.nnnbackend.dto.request.RecipeFilterRequest;
 import com.nomnomnow.nnnbackend.dto.request.RecipeRequest;
 import com.nomnomnow.nnnbackend.entity.Ingredient;
 import com.nomnomnow.nnnbackend.entity.Recipe;
@@ -93,6 +94,17 @@ public class RecipeService {
     @Transactional(readOnly = true)
     public Page<Recipe> searchByOwner(Long ownerId, String query, Pageable pageable) {
         return recipeRepository.searchByOwnerAndNameOrIngredient(ownerId, escapeLike(query), pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Recipe> findByCategoryIds(RecipeFilterRequest filterRequest, Pageable pageable) {
+        return recipeRepository.findByCategoryIds(filterRequest.categoryIds(), pageable);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<Recipe> searchByCategoryIds(RecipeFilterRequest filterRequest, String query, Pageable pageable) {
+        return recipeRepository.searchByCategoryIdsAndNameOrIngredient(
+                filterRequest.categoryIds(), escapeLike(query), pageable);
     }
 
     static String escapeLike(String value) {

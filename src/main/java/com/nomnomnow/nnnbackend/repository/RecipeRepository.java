@@ -12,6 +12,67 @@ import java.util.List;
 
 public interface RecipeRepository extends JpaRepository<Recipe, Long> {
 
+    @Query(
+            value = """
+                SELECT DISTINCT r.*
+                FROM app.recipe r
+                WHERE EXISTS (
+                    SELECT 1 FROM unnest(string_to_array(r.categories, ',')) AS cid
+                    WHERE cid::bigint IN (:categoryIds)
+                )
+                """,
+            countQuery = """
+                SELECT COUNT(DISTINCT r.id)
+                FROM app.recipe r
+                WHERE EXISTS (
+                    SELECT 1 FROM unnest(string_to_array(r.categories, ',')) AS cid
+                    WHERE cid::bigint IN (:categoryIds)
+                )
+                """,
+            nativeQuery = true
+    )
+    Page<Recipe> findByCategoryIds(@Param("categoryIds") List<Long> categoryIds, Pageable pageable);
+
+    @Query(
+            value = """
+                SELECT DISTINCT r.*
+                FROM app.recipe r
+                WHERE EXISTS (
+                    SELECT 1 FROM unnest(string_to_array(r.categories, ',')) AS cid
+                    WHERE cid::bigint IN (:categoryIds)
+                )
+                AND (
+                    LOWER(r.name) LIKE LOWER(CONCAT('%', :q, '%')) ESCAPE '\\'
+                    OR r.id IN (
+                        SELECT rc.recipe_id FROM app.recipe_component rc
+                        JOIN app.ingredient i ON rc.ingredient_id = i.id
+                        WHERE LOWER(i.name) LIKE LOWER(CONCAT('%', :q, '%')) ESCAPE '\\'
+                    )
+                )
+                """,
+            countQuery = """
+                SELECT COUNT(DISTINCT r.id)
+                FROM app.recipe r
+                WHERE EXISTS (
+                    SELECT 1 FROM unnest(string_to_array(r.categories, ',')) AS cid
+                    WHERE cid::bigint IN (:categoryIds)
+                )
+                AND (
+                    LOWER(r.name) LIKE LOWER(CONCAT('%', :q, '%')) ESCAPE '\\'
+                    OR r.id IN (
+                        SELECT rc.recipe_id FROM app.recipe_component rc
+                        JOIN app.ingredient i ON rc.ingredient_id = i.id
+                        WHERE LOWER(i.name) LIKE LOWER(CONCAT('%', :q, '%')) ESCAPE '\\'
+                    )
+                )
+                """,
+            nativeQuery = true
+    )
+    Page<Recipe> searchByCategoryIdsAndNameOrIngredient(
+            @Param("categoryIds") List<Long> categoryIds,
+            @Param("q") String query,
+            Pageable pageable);
+
     @Override
     @EntityGraph(attributePaths = {"components.ingredient"})
     Page<Recipe> findAll(Pageable pageable);
