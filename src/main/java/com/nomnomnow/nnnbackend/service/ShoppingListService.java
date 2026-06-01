@@ -72,6 +72,16 @@ public class ShoppingListService {
                 .orElseThrow(() -> new ResourceNotFoundException("Shopping list not found with id: " + id));
     }
 
+    @Transactional
+    public void deleteShoppingList(Long id) {
+        AppUser currentUser = currentUserService.getCurrentUser();
+
+        var shoppingList = shoppingListRepository.findByIdAndOwner(id, currentUser)
+                .orElseThrow(() -> new ResourceNotFoundException("Shopping list not found with id: " + id));
+
+        shoppingListRepository.delete(shoppingList);
+    }
+
     private List<ShoppingListItem> aggregateItems(List<RecipeComponent> components) {
         var itemsByIngredientAndUnit = new LinkedHashMap<ShoppingListItemKey, ShoppingListItem>();
 

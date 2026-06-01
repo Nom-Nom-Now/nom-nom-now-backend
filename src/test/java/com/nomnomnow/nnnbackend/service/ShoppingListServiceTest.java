@@ -21,6 +21,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -112,6 +113,34 @@ class ShoppingListServiceTest {
         assertThatThrownBy(() -> shoppingListService.getShoppingList(99L))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessage("Shopping list not found with id: 99");
+    }
+
+    @Test
+    void deleteShoppingListDeletesOnlyListsForCurrentUser() {
+        var owner = user(42L);
+        var shoppingList = new ShoppingList();
+        shoppingList.setId(7L);
+        shoppingList.setOwner(owner);
+
+        when(currentUserService.getCurrentUser()).thenReturn(owner);
+        when(shoppingListRepository.findByIdAndOwner(7L, owner)).thenReturn(Optional.of(shoppingList));
+
+        shoppingListService.deleteShoppingList(7L);
+
+        verify(shoppingListRepository).delete(shoppingList);
+    }
+
+    @Test
+    void deleteShoppingListThrowsWhenListDoesNotBelongToCurrentUser() {
+        var owner = user(42L);
+
+        when(currentUserService.getCurrentUser()).thenReturn(owner);
+        when(shoppingListRepository.findByIdAndOwner(99L, owner)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> shoppingListService.deleteShoppingList(99L))
+                .isInstanceOf(ResourceNotFoundException.class)
+                .hasMessage("Shopping list not found with id: 99");
+        verify(shoppingListRepository, never()).delete(any());
     }
 
     private AppUser user(Long id) {

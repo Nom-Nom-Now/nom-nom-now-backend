@@ -6,6 +6,7 @@ import com.nomnomnow.nnnbackend.dto.response.ShoppingListSummaryResponse;
 import com.nomnomnow.nnnbackend.service.ShoppingListService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,5 +31,11 @@ public class ShoppingListController {
     @GetMapping("/{id}")
     public ShoppingListResponse getShoppingList(@PathVariable Long id) {
         return shoppingListService.getShoppingList(id);
+    }
+
+    @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteShoppingList(@PathVariable Long id) {
+        shoppingListService.deleteShoppingList(id);
     }
 }
