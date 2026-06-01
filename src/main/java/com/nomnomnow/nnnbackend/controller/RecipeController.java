@@ -1,5 +1,6 @@
 package com.nomnomnow.nnnbackend.controller;
 
+import com.nomnomnow.nnnbackend.dto.request.RecipeFilterRequest;
 import com.nomnomnow.nnnbackend.dto.request.RecipeRequest;
 import com.nomnomnow.nnnbackend.dto.response.RecipeResponse;
 import com.nomnomnow.nnnbackend.mapper.RecipeMapper;
@@ -92,6 +93,20 @@ public class RecipeController {
         var recipes = (q != null && !q.isBlank())
                 ? recipeService.searchByOwner(userId, q, pageable)
                 : recipeService.findByOwner(userId, pageable);
+        return recipes.map(recipeMapper::toResponse);
+    }
+
+    @PostMapping("/filter/categories")
+    public Page<RecipeResponse> filterByCategories(
+            @Valid @RequestBody RecipeFilterRequest filterRequest,
+            @RequestParam(required = false) String q,
+            @RequestParam(defaultValue = "0") @Min(0) int page,
+            @RequestParam(defaultValue = "20") @Max(50) int size
+    ) {
+        var pageable = PageRequest.of(page, size);
+        var recipes = (q != null && !q.isBlank())
+                ? recipeService.searchByCategoryIds(filterRequest, q, pageable)
+                : recipeService.findByCategoryIds(filterRequest, pageable);
         return recipes.map(recipeMapper::toResponse);
     }
 
