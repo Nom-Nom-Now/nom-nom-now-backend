@@ -31,6 +31,12 @@ public class RecipePlanController {
         return ResponseEntity.ok(recipePlanService.saveWeeklyPlan(request));
     }
 
+    @PatchMapping("/refresh")
+    public ResponseEntity<List<RecipePlanResponse>> refreshWeeklyPlan(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate weekStart) {
+        return ResponseEntity.ok(recipePlanService.refreshWeeklyPlan(weekStart));
+    }
+
     @PatchMapping("/{planDate}/refresh")
     public ResponseEntity<RecipePlanResponse> refreshPlanDay(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate planDate) {

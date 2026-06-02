@@ -81,6 +81,20 @@ public class RecipePlanService {
     }
 
     @Transactional
+    public List<RecipePlanResponse> refreshWeeklyPlan(LocalDate weekStart) {
+        AppUser currentUser = currentUserService.getCurrentUser();
+        LocalDate normalizedWeekStart = normalizeWeekStart(weekStart);
+        validateWeekRefreshAccess(normalizedWeekStart);
+        LocalDate weekEnd = normalizedWeekStart.plusDays(DAYS_IN_WEEK - 1);
+
+        recipePlanRepository.deleteByOwnerAndPlanDateBetween(
+                currentUser, normalizedWeekStart, weekEnd);
+        recipePlanRepository.flush();
+
+        return mapToResponses(createRandomWeeklyPlans(currentUser, normalizedWeekStart));
+    }
+
+    @Transactional
     public RecipePlanResponse refreshPlanDay(LocalDate planDate) {
         AppUser currentUser = currentUserService.getCurrentUser();
         validateWeekRefreshAccess(normalizeWeekStart(planDate));
@@ -101,6 +115,10 @@ public class RecipePlanService {
             return recipePlanRepository.findByOwnerAndDateRange(currentUser, weekStart, weekEnd);
         }
 
+        return createRandomWeeklyPlans(currentUser, weekStart);
+    }
+
+    private List<RecipePlan> createRandomWeeklyPlans(AppUser currentUser, LocalDate weekStart) {
         List<Recipe> randomRecipes = recipeRepository.findRandomRecipes(PageRequest.of(0, (int) DAYS_IN_WEEK));
 
         if (randomRecipes.isEmpty()) {

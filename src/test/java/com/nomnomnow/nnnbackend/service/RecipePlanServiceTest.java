@@ -97,6 +97,32 @@ class RecipePlanServiceTest {
     }
 
     @Test
+    void refreshWeeklyPlanReplacesTheWeekWithFreshRandomRecipes() {
+        var owner = user(42L);
+        var weekStart = currentWeekStart();
+        var mondayRecipe = recipe(11L, "New monday");
+        var tuesdayRecipe = recipe(12L, "New tuesday");
+
+        when(currentUserService.getCurrentUser()).thenReturn(owner);
+        when(recipeRepository.findRandomRecipes(PageRequest.of(0, 7)))
+                .thenReturn(List.of(mondayRecipe, tuesdayRecipe));
+        when(recipePlanRepository.saveAll(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(recipeMapper.toResponse(mondayRecipe)).thenReturn(responseRecipe(mondayRecipe));
+        when(recipeMapper.toResponse(tuesdayRecipe)).thenReturn(responseRecipe(tuesdayRecipe));
+
+        var response = recipePlanService.refreshWeeklyPlan(weekStart);
+
+        assertThat(response).hasSize(2);
+        assertThat(response.getFirst().planDate()).isEqualTo(weekStart);
+        assertThat(response.getFirst().recipe().id()).isEqualTo(11L);
+        assertThat(response.get(1).planDate()).isEqualTo(weekStart.plusDays(1));
+        assertThat(response.get(1).recipe().id()).isEqualTo(12L);
+        verify(recipePlanRepository).deleteByOwnerAndPlanDateBetween(
+                owner, weekStart, weekStart.plusDays(6));
+        verify(recipePlanRepository).flush();
+    }
+
+    @Test
     void refreshPlanDayRejectsPastWeeks() {
         var owner = user(42L);
 
