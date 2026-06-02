@@ -3,6 +3,7 @@ package com.nomnomnow.nnnbackend.dto.request;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 
 import java.util.List;
@@ -12,6 +13,7 @@ public record RecipeRequest(
         @NotBlank String name,
         String instructions,
         @PositiveOrZero Integer cookingTime,
+        @Positive Integer servings,
         @PositiveOrZero Integer pricePerPerson,
         Set<Long> categoryIds,
         @NotEmpty List<@Valid RecipeComponentRequest> components

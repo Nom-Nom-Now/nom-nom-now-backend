@@ -7,6 +7,7 @@ public record RecipeResponse(
         String name,
         String instructions,
         Integer cookingTime,
+        Integer servings,
         Integer pricePerPerson,
         String imageUrl,
         String ownerName,
