@@ -136,6 +136,7 @@ public class RecipeService {
         recipe.setName(request.name().trim());
         recipe.setInstructions(request.instructions());
         recipe.setCookingTime(request.cookingTime());
+        recipe.setServings(request.servings() == null ? 1 : request.servings());
         recipe.setPricePerPerson(request.pricePerPerson());
         recipe.setCategories(request.categoryIds());
     }

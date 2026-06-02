@@ -137,6 +137,7 @@ class RecipePlanServiceTest {
                 recipe.getName(),
                 null,
                 null,
+                recipe.getServings(),
                 null,
                 null,
                 null,

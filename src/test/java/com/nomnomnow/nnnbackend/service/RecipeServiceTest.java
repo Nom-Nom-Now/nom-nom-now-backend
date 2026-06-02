@@ -108,6 +108,7 @@ class RecipeServiceTest {
         assertThat(updatedRecipe.getName()).isEqualTo("Updated Recipe");
         assertThat(updatedRecipe.getInstructions()).isEqualTo("Updated instructions");
         assertThat(updatedRecipe.getCookingTime()).isEqualTo(35);
+        assertThat(updatedRecipe.getServings()).isEqualTo(4);
         assertThat(updatedRecipe.getPricePerPerson()).isEqualTo(499);
         assertThat(updatedRecipe.getCategories()).isEqualTo("2,3");
         assertThat(updatedRecipe.getImageData()).containsExactly(1, 2, 3);
@@ -240,6 +241,7 @@ class RecipeServiceTest {
                 " Updated Recipe ",
                 "Updated instructions",
                 35,
+                4,
                 499,
                 new LinkedHashSet<>(List.of(2L, 3L)),
                 List.of(new RecipeComponentRequest(null, "Salt", BigDecimal.valueOf(2), Unit.GRAM))
@@ -251,6 +253,7 @@ class RecipeServiceTest {
                 "Updated Recipe",
                 "Updated instructions",
                 35,
+                4,
                 499,
                 new LinkedHashSet<>(List.of(2L, 3L)),
                 List.of(new RecipeComponentRequest(ingredientId, "Smoke Water", BigDecimal.valueOf(3), Unit.MILLILITER))
@@ -262,6 +265,7 @@ class RecipeServiceTest {
                 "Duplicate Ingredient Recipe",
                 "Updated instructions",
                 35,
+                4,
                 499,
                 new LinkedHashSet<>(List.of(2L, 3L)),
                 List.of(

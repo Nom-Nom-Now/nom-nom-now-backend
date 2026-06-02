@@ -36,6 +36,7 @@ public class RecipeMapper {
                 recipe.getName(),
                 recipe.getInstructions(),
                 recipe.getCookingTime(),
+                recipe.getServings(),
                 recipe.getPricePerPerson(),
                 imageUrl,
                 ownerName,

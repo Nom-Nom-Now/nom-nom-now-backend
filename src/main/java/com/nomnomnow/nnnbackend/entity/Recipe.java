@@ -32,6 +32,9 @@ public class Recipe {
     @Column(name = "cooking_time")
     private Integer cookingTime;
 
+    @Column(nullable = false)
+    private Integer servings = 1;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner_id")
     private AppUser owner;

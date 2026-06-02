@@ -5,6 +5,7 @@ import com.nomnomnow.nnnbackend.dto.response.ShoppingListItemResponse;
 import com.nomnomnow.nnnbackend.dto.response.ShoppingListResponse;
 import com.nomnomnow.nnnbackend.dto.response.ShoppingListSummaryResponse;
 import com.nomnomnow.nnnbackend.entity.RecipeComponent;
+import com.nomnomnow.nnnbackend.entity.RecipePlan;
 import com.nomnomnow.nnnbackend.entity.ShoppingList;
 import com.nomnomnow.nnnbackend.entity.ShoppingListItem;
 import com.nomnomnow.nnnbackend.entity.Unit;
@@ -18,10 +19,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.time.DayOfWeek.MONDAY;
 
@@ -37,10 +42,9 @@ public class ShoppingListService {
     public ShoppingListResponse generateShoppingList(ShoppingListRequest request) {
         AppUser currentUser = currentUserService.getCurrentUser();
         var weekStart = request.weekStart().with(TemporalAdjusters.previousOrSame(MONDAY));
+        var peopleCountsByDate = buildPeopleCountsByDate(request, weekStart);
         var plans = recipePlanService.getOrCreateWeeklyPlansForCurrentUser(weekStart);
-        var aggregatedItems = aggregateItems(plans.stream()
-                .flatMap(plan -> plan.getRecipe().getComponents().stream())
-                .toList());
+        var aggregatedItems = aggregateItems(plans, peopleCountsByDate);
 
         if (aggregatedItems.isEmpty()) {
             throw new BadRequestException("Cannot generate a shopping list without recipe ingredients");
@@ -82,17 +86,44 @@ public class ShoppingListService {
         shoppingListRepository.delete(shoppingList);
     }
 
-    private List<ShoppingListItem> aggregateItems(List<RecipeComponent> components) {
-        var itemsByIngredientAndUnit = new LinkedHashMap<ShoppingListItemKey, ShoppingListItem>();
+    private Map<LocalDate, Integer> buildPeopleCountsByDate(ShoppingListRequest request, LocalDate weekStart) {
+        if (request.days().isEmpty()) {
+            return Map.of();
+        }
 
-        for (RecipeComponent component : components) {
-            if (component.getIngredient() == null || component.getQuantity() == null || component.getUnit() == null) {
-                continue;
+        var weekEnd = weekStart.plusDays(6);
+        var peopleCountsByDate = new HashMap<LocalDate, Integer>();
+
+        for (var day : request.days()) {
+            if (day == null || day.planDate() == null || day.peopleCount() == null || day.peopleCount() < 1) {
+                throw new BadRequestException("People count must be at least 1 for each planned day");
             }
 
-            var key = new ShoppingListItemKey(component.getIngredient().getName(), component.getUnit());
-            var item = itemsByIngredientAndUnit.computeIfAbsent(key, ignored -> createItem(component));
-            item.setQuantity(item.getQuantity().add(component.getQuantity()));
+            if (day.planDate().isBefore(weekStart) || day.planDate().isAfter(weekEnd)) {
+                throw new BadRequestException("People counts must belong to the requested week");
+            }
+
+            peopleCountsByDate.put(day.planDate(), day.peopleCount());
+        }
+
+        return peopleCountsByDate;
+    }
+
+    private List<ShoppingListItem> aggregateItems(List<RecipePlan> plans, Map<LocalDate, Integer> peopleCountsByDate) {
+        var itemsByIngredientAndUnit = new LinkedHashMap<ShoppingListItemKey, ShoppingListItem>();
+
+        for (RecipePlan plan : plans) {
+            var peopleCount = peopleCountsByDate.getOrDefault(plan.getPlanDate(), 1);
+
+            for (RecipeComponent component : plan.getRecipe().getComponents()) {
+                if (component.getIngredient() == null || component.getQuantity() == null || component.getUnit() == null) {
+                    continue;
+                }
+
+                var key = new ShoppingListItemKey(component.getIngredient().getName(), component.getUnit());
+                var item = itemsByIngredientAndUnit.computeIfAbsent(key, ignored -> createItem(component));
+                item.setQuantity(item.getQuantity().add(scaleQuantity(component, peopleCount)));
+            }
         }
 
         return itemsByIngredientAndUnit.values().stream()
@@ -108,6 +139,15 @@ public class ShoppingListService {
         item.setUnit(component.getUnit());
         item.setQuantity(BigDecimal.ZERO);
         return item;
+    }
+
+    private BigDecimal scaleQuantity(RecipeComponent component, int peopleCount) {
+        var recipeServings = component.getRecipe().getServings();
+        var servings = recipeServings == null || recipeServings < 1 ? 1 : recipeServings;
+
+        return component.getQuantity()
+                .multiply(BigDecimal.valueOf(peopleCount))
+                .divide(BigDecimal.valueOf(servings), 2, RoundingMode.HALF_UP);
     }
 
     private ShoppingListSummaryResponse mapToSummaryResponse(ShoppingList shoppingList) {

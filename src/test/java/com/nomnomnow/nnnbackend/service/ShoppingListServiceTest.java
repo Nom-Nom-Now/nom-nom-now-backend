@@ -1,7 +1,9 @@
 package com.nomnomnow.nnnbackend.service;
 
 import com.nomnomnow.nnnbackend.dto.request.ShoppingListRequest;
+import com.nomnomnow.nnnbackend.dto.request.ShoppingListDayRequest;
 import com.nomnomnow.nnnbackend.entity.*;
+import com.nomnomnow.nnnbackend.exception.BadRequestException;
 import com.nomnomnow.nnnbackend.exception.ResourceNotFoundException;
 import com.nomnomnow.nnnbackend.repository.ShoppingListRepository;
 import com.nomnomnow.nnnbackend.user.AppUser;
@@ -82,6 +84,58 @@ class ShoppingListServiceTest {
     }
 
     @Test
+    void generateShoppingListScalesIngredientsByPeopleCountPerPlanDate() {
+        var owner = user(42L);
+        var weekStart = LocalDate.of(2026, 6, 1);
+        var mondayRecipe = recipe(4, component("Tomato", "2.00", Unit.PIECE), component("Salt", "1.00", Unit.GRAM));
+        var tuesdayRecipe = recipe(3, component("Tomato", "3.00", Unit.PIECE));
+
+        when(currentUserService.getCurrentUser()).thenReturn(owner);
+        when(recipePlanService.getOrCreateWeeklyPlansForCurrentUser(weekStart))
+                .thenReturn(List.of(
+                        plan(owner, mondayRecipe, weekStart),
+                        plan(owner, tuesdayRecipe, weekStart.plusDays(1))
+                ));
+        when(shoppingListRepository.saveAndFlush(any(ShoppingList.class))).thenAnswer(invocation -> {
+            var shoppingList = (ShoppingList) invocation.getArgument(0);
+            shoppingList.setId(7L);
+            shoppingList.setCreatedAt(OffsetDateTime.parse("2026-06-01T12:00:00Z"));
+            return shoppingList;
+        });
+
+        var response = shoppingListService.generateShoppingList(new ShoppingListRequest(
+                weekStart,
+                List.of(
+                        new ShoppingListDayRequest(weekStart, 2),
+                        new ShoppingListDayRequest(weekStart.plusDays(1), 3)
+                )
+        ));
+
+        assertThat(response.items()).extracting("ingredientName")
+                .containsExactly("Salt", "Tomato");
+        assertThat(response.items()).extracting("quantity")
+                .containsExactly(
+                        new BigDecimal("0.50"),
+                        new BigDecimal("4.00")
+                );
+    }
+
+    @Test
+    void generateShoppingListRejectsPeopleCountsOutsideRequestedWeek() {
+        var owner = user(42L);
+        var weekStart = LocalDate.of(2026, 6, 1);
+
+        when(currentUserService.getCurrentUser()).thenReturn(owner);
+
+        assertThatThrownBy(() -> shoppingListService.generateShoppingList(new ShoppingListRequest(
+                weekStart,
+                List.of(new ShoppingListDayRequest(weekStart.plusDays(7), 2))
+        )))
+                .isInstanceOf(BadRequestException.class)
+                .hasMessage("People counts must belong to the requested week");
+    }
+
+    @Test
     void generateShoppingListCreatesANewSnapshotEveryTime() {
         var owner = user(42L);
         var weekStart = LocalDate.now().with(java.time.DayOfWeek.MONDAY);
@@ -150,9 +204,14 @@ class ShoppingListServiceTest {
     }
 
     private Recipe recipe(RecipeComponent... components) {
+        return recipe(1, components);
+    }
+
+    private Recipe recipe(Integer servings, RecipeComponent... components) {
         var recipe = new Recipe();
         recipe.setId(1L);
         recipe.setName("Recipe");
+        recipe.setServings(servings);
         for (RecipeComponent component : components) {
             component.setRecipe(recipe);
             recipe.getComponents().add(component);
