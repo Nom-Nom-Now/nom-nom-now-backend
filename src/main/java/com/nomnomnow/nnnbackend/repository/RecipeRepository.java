@@ -1,6 +1,7 @@
 package com.nomnomnow.nnnbackend.repository;
 
 import com.nomnomnow.nnnbackend.entity.Recipe;
+import com.nomnomnow.nnnbackend.user.AppUser;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.EntityGraph;
@@ -109,6 +110,8 @@ public interface RecipeRepository extends JpaRepository<Recipe, Long> {
             Pageable pageable);
 
     boolean existsByName(String name);
+
+    long deleteByOwner(AppUser owner);
 
     @Query("SELECT r FROM Recipe r ORDER BY function('random')")
     List<Recipe> findRandomRecipes(Pageable pageable);
